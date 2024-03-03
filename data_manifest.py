@@ -2,7 +2,7 @@ from pathlib import Path
 from datetime import datetime
 import re
 
-class StockDataPathHelper:
+class DataManifest:
     # Mapping of time periods to folder names
 
     def __init__(self, root_folder):

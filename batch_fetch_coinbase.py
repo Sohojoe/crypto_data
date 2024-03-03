@@ -2,7 +2,7 @@ import datetime
 import http.client
 import json
 import pandas as pd
-from stock_data_path_helper import StockDataPathHelper
+from data_manifest import DataManifest
 
 platform = 'coinbase'
 time_period_to_seconds = {
@@ -82,7 +82,7 @@ def fetch_time_period_in_year_chunks(start_time: datetime, end_time: datetime, p
         # add one year using datetime helpers
         duration = int(start_time.replace(year=start_time.year+1).timestamp()) - int(start_time.timestamp())
         df = request_data(start_time, duration, product_id, granularity)
-        path = path_helper.to_path(start_time, start_time + datetime.timedelta(seconds=duration-granularity), product_id, platform, time_period)
+        path = data_manifest.to_path(start_time, start_time + datetime.timedelta(seconds=duration-granularity), product_id, platform, time_period)
         file_name = path.with_suffix('.csv')
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(file_name, index=False)
@@ -95,7 +95,7 @@ time_periods = ['1T', '5T', '15T', '1H', '6H','1D']
 # time_periods = ['1D']
 product_id:str = "BTC-USD"
 for time_period in time_periods:
-    path_helper = StockDataPathHelper('data')
+    data_manifest = DataManifest('data')
     start_time = datetime.datetime(2015, 1, 1, tzinfo=datetime.timezone.utc)
     end_time = datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc)
     fetch_time_period_in_year_chunks(start_time, end_time, product_id, time_period)

@@ -1,6 +1,6 @@
-from stock_data_path_helper import StockDataPathHelper
+from data_manifest import DataManifest
 
-path_helper = StockDataPathHelper('data')
+data_manifest = DataManifest('data')
 
-fred = path_helper.query_data_structure()
+fred = data_manifest.query_data_structure()
 print("---done---")
