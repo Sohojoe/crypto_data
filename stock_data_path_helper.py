@@ -39,10 +39,15 @@ class StockDataPathHelper:
             if product_folder.is_dir():
                 product = product_folder.name
                 data_structure[product] = {}
-                for period_folder in product_folder.iterdir():
-                    time_period = period_folder.name
-                    data_structure[product][time_period] = []
-                    for file in period_folder.iterdir():
-                        if file.is_file():
-                            data_structure[product][time_period].append(file.name)
+                for platform_folder in product_folder.iterdir():
+                    if platform_folder.is_dir():
+                        platform = platform_folder.name
+                        data_structure[product][platform] = {}
+                        for period_folder in platform_folder.iterdir():
+                            if period_folder.is_dir():
+                                time_period = period_folder.name
+                                data_structure[product][platform][time_period] = []
+                                for file in period_folder.iterdir():
+                                    if file.is_file():
+                                        data_structure[product][platform][time_period].append(file.name)
         return data_structure
