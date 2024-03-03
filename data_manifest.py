@@ -1,3 +1,4 @@
+from collections import deque
 from pathlib import Path
 from datetime import datetime, timezone
 import re
@@ -25,13 +26,14 @@ def _convert_str_to_datetime(date_str):
 class DataManifest:
     # Mapping of time periods to folder names
 
-    def __init__(self, root_folder):
+    def __init__(self, root_folder, window_size = 200):
         self.root_folder = Path(root_folder)
         self.products = None
         self.platforms = None
         self.periods = None
         self.start_time = None
         self.end_time = None
+        self.window_size = window_size
         self.query_data_structure()
 
     def to_path(self, start_time, end_time, product, platform, time_period):
@@ -127,3 +129,19 @@ class DataManifest:
                                     # Only yield rows within the specified start and end time
                                     if start_time <= row_time <= self.end_time:
                                         yield row
+
+    def stream_data_and_window(self, start_time, product, platform, time_period):
+        # Low,High,Open,Close,Volume
+        self.window_low = deque(maxlen=self.window_size)
+        self.window_high = deque(maxlen=self.window_size)
+        self.window_open = deque(maxlen=self.window_size)
+        self.window_close = deque(maxlen=self.window_size)
+        self.window_volume = deque(maxlen=self.window_size)
+
+        for step in self.stream_data(start_time, product, platform, time_period):
+            self.window_low.append(step['Low'])
+            self.window_high.append(step['High'])
+            self.window_open.append(step['Open'])
+            self.window_close.append(step['Close'])
+            self.window_volume.append(step['Volume'])
+            yield {'Low': self.window_low, 'High': self.window_high, 'Open': self.window_open, 'Close': self.window_close, 'Volume': self.window_volume}
