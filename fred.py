@@ -1,4 +1,17 @@
 from data_manifest import DataManifest
+from streaming_window import StreamingWindow
+
+# Example usage
+window_size = 3  # Define the window size
+streaming_window = StreamingWindow(window_size)
+
+for i in range(10):
+    new_data = [i*.5] * 5
+    streaming_window.add_data(new_data)
+
+    current_window = streaming_window.get_current_window()
+    print("Current window shape:", current_window.shape)
+    print(current_window)
 
 data_manifest = DataManifest('data')
 

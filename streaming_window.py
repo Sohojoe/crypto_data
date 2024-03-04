@@ -1,41 +1,36 @@
 import numpy as np
 
 class StreamingWindow:
-    def __init__(self, max_window_size, dtype=float):
-        self.max_window_size = max_window_size
-        self.buffer_size = max_window_size * 2  # Buffer size is twice the window size
-        self.dtype = dtype  # Data type for the buffer
-        self.buffer = np.zeros(self.buffer_size, dtype=self.dtype)  # Initialize buffer with specified data type
-        self.items_added = 0  # Track the number of items added to the buffer
+    def __init__(self, window_size, num_features=5, dtype=np.float64):
+        self.window_size = window_size
+        self.num_features = num_features
+        self.buffer = np.zeros((num_features, window_size * 2), dtype=dtype)
+        self.current_index = 0  # Tracks the current timestep for updates
+        self.data_count = 0  # Tracks how many times data has been added
 
-    def add_data(self, new_data):
-        # Ensure new_data is of the correct dtype
-        new_data = np.asarray(new_data, dtype=self.dtype)
-        # Calculate the current position based on items added
-        current_position = self.items_added % self.max_window_size
-        # Add new data at the current position and its mirrored position
-        self.buffer[current_position] = new_data
-        self.buffer[current_position + self.max_window_size] = new_data
-        # Update the count of items added
-        self.items_added += 1
+    def add_data(self, data):
+        if len(data) != self.num_features:
+            raise ValueError(f"Data length must be {self.num_features}")
+        
+        # Update the buffer with new data
+        self.buffer[:, self.current_index] = data
+        self.buffer[:, self.current_index + self.window_size] = data
+        
+        # Increment the current index and data count, wrapping the index as needed
+        self.current_index = (self.current_index + 1) % self.window_size
+        self.data_count += 1
 
     def get_current_window(self):
-        # Determine the current window size (it grows until it reaches max_window_size)
-        current_window_size = min(self.items_added, self.max_window_size)
-        start_pos = self.items_added % self.max_window_size
-        if self.items_added <= self.max_window_size:
-            return self.buffer[:current_window_size]
+        # Calculate the effective window size based on the amount of data added
+        effective_window_size = min(self.data_count, self.window_size)
+        
+        if self.data_count <= self.window_size:
+            return self.buffer[:, :effective_window_size]
         else:
-            return self.buffer[start_pos:start_pos + self.max_window_size]
-
-# Example usage
-if __name__ == "__main__":
-    max_window_size = 5
-    # Example: Specify the data type as integer
-    streaming_window = StreamingWindow(max_window_size, dtype=np.int_)
-    streaming_window = StreamingWindow(max_window_size, dtype=np.float_)
-
-    # Simulate adding data and printing the current window
-    for i in np.arange(1, 11, 0.5):
-        streaming_window.add_data(i)
-        print(f"Current window after adding {i}: {streaming_window.get_current_window()}")
+            # Calculate start and end positions for the circular buffer
+            start = self.current_index
+            end = (start + effective_window_size) % (self.window_size * 2)
+            if start < end:
+                return self.buffer[:, start:end]
+            else:
+                return np.hstack((self.buffer[:, start:], self.buffer[:, :end]))
