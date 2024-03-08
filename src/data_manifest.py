@@ -1,6 +1,7 @@
 from collections import deque
 from pathlib import Path
 from datetime import datetime, timezone
+import numpy as np
 from streaming_window import StreamingWindow
 import csv
 
@@ -130,11 +131,26 @@ class DataManifest:
                                     if start_time <= row_time <= self.end_time:
                                         yield row
 
-    def stream_data_and_window(self, start_time, product, platform, time_period):
-        window = StreamingWindow(window_size=self.window_size, num_features=5)
+    def stream_data_and_window(self, start_time, product, platform, time_period, fill_window=True):
+        # data_types = [
+        #     ('low', 'float64'),
+        #     ('high', 'float64'),
+        #     ('open', 'float64'),
+        #     ('close', 'float64'),
+        #     ('volume', 'float64'),
+        #     ('time', 'int64'),
+        # ]
+        window = StreamingWindow(window_size=self.window_size, num_features=6, )
 
         for step in self.stream_data(start_time, product, platform, time_period):
-            data = [float(step['Low']), float(step['High']), float(step['Open']), float(step['Close']), float(step['Volume'])]
+            # unix_time = np.int64(_convert_str_to_datetime(step['Time']).timestamp())
+            # data = np.array([np.float64(step['Low']), np.float64(step['High']), 
+            #         np.float64(step['Open']), np.float64(step['Close']), 
+            #         np.float64(step['Volume']), unix_time])
+            unix_time = np.float64(_convert_str_to_datetime(step['Time']).timestamp())
+            data = np.array([np.float64(step['Low']), np.float64(step['High']), 
+                    np.float64(step['Open']), np.float64(step['Close']), 
+                    np.float64(step['Volume']), unix_time])
             window.add_data(data)
             current_window = window.get_current_window()
             step = {
@@ -142,6 +158,8 @@ class DataManifest:
             'High': current_window[1, -1],
             'Open': current_window[2, -1],
             'Close': current_window[3, -1],
-            'Volume': current_window[4, -1]
+            'Volume': current_window[4, -1],
+            'Time': current_window[5, -1]
             }
-            yield step, current_window
+            if fill_window and current_window.shape[1] == self.window_size:
+                yield step, current_window
