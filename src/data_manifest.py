@@ -1,7 +1,7 @@
 from collections import deque
 from pathlib import Path
 from datetime import datetime, timezone
-import re
+from streaming_window import StreamingWindow
 import csv
 
 def _convert_str_to_datetime(date_str):
@@ -131,17 +131,17 @@ class DataManifest:
                                         yield row
 
     def stream_data_and_window(self, start_time, product, platform, time_period):
-        # Low,High,Open,Close,Volume
-        self.window_low = deque(maxlen=self.window_size)
-        self.window_high = deque(maxlen=self.window_size)
-        self.window_open = deque(maxlen=self.window_size)
-        self.window_close = deque(maxlen=self.window_size)
-        self.window_volume = deque(maxlen=self.window_size)
+        window = StreamingWindow(window_size=self.window_size, num_features=5)
 
         for step in self.stream_data(start_time, product, platform, time_period):
-            self.window_low.append(step['Low'])
-            self.window_high.append(step['High'])
-            self.window_open.append(step['Open'])
-            self.window_close.append(step['Close'])
-            self.window_volume.append(step['Volume'])
-            yield {'Low': self.window_low, 'High': self.window_high, 'Open': self.window_open, 'Close': self.window_close, 'Volume': self.window_volume}
+            data = [float(step['Low']), float(step['High']), float(step['Open']), float(step['Close']), float(step['Volume'])]
+            window.add_data(data)
+            current_window = window.get_current_window()
+            step = {
+            'Low': current_window[0, -1],
+            'High': current_window[1, -1],
+            'Open': current_window[2, -1],
+            'Close': current_window[3, -1],
+            'Volume': current_window[4, -1]
+            }
+            yield step, current_window
