@@ -44,6 +44,7 @@ up_volume_color = '#305D5D'
 down_volume_color = '#783A3B'
 text_white = '#D4D6DD'
 line_color = '#2A2E38'
+# background_color = '#808080'
 
 
 my_style = {'candle'  : {'up':up_candle_color, 'down':down_candle_color},
@@ -86,6 +87,20 @@ ax2.set_ylabel('Volume', color=text_white)
 for spine in ax2.spines.values():
     spine.set_color(line_color)
 
+def find_fractals(data):
+    # Assuming 'data' is a DataFrame with 'High' and 'Low' columns
+    upward_fractals = []
+    downward_fractals = []
+    
+    for i in range(2, len(data) - 2):
+        # Use .iloc for positional indexing
+        if data['High'].iloc[i] > data['High'].iloc[i-1] and data['High'].iloc[i] > data['High'].iloc[i-2] and data['High'].iloc[i] > data['High'].iloc[i+1] and data['High'].iloc[i] > data['High'].iloc[i+2]:
+            # upward_fractals.append(data.index[i])
+            upward_fractals.append(i)
+        if data['Low'].iloc[i] < data['Low'].iloc[i-1] and data['Low'].iloc[i] < data['Low'].iloc[i-2] and data['Low'].iloc[i] < data['Low'].iloc[i+1] and data['Low'].iloc[i] < data['Low'].iloc[i+2]:
+            # downward_fractals.append(data.index[i])
+            upward_fractals.append(i)
+    return upward_fractals, downward_fractals
 
 def animate(i):
     step, window = next(data_iter)
@@ -99,19 +114,28 @@ def animate(i):
         data, type='candle', 
         style=my_style_background, 
         volume=ax2, ax=ax1)
-    # mpf.plot(data, type='candle', style='nightclouds', volume=ax2, ax=ax1,
-    #          title=f'Product: {product}, Platform: {platform}, Time Period: {time_period}')
+
+    upward_fractals, downward_fractals = find_fractals(data)
+    for i in upward_fractals:
+        ax1.annotate('▲', (i, data['High'].iloc[i]), color=down_candle_color, 
+                     xytext=(0, 10),
+                     textcoords='offset points',
+                    #  zorder=5, 
+                     fontsize=14, ha='center')
+    for i in upward_fractals:
+        ax1.annotate('▼', (i, data['Low'].iloc[i]-10), color=up_candle_color, 
+                     xytext=(0, -8),
+                     textcoords='offset points',
+                    #  zorder=5, 
+                     fontsize=14, ha='center')
 
     ax1.yaxis.label.set_color(text_white)
     ax2.yaxis.label.set_color(text_white)
-
-    bar_index = len(data) - 1
-    bar_time = mdates.date2num(data.index[bar_index])
-    ax1.annotate('▲', (bar_time, data['High'].iloc[bar_index]), fontsize=12, color='green', xytext=(0, 10), textcoords='offset points')
-
+    fig.canvas.draw()
     
 
 ani = FuncAnimation(fig, animate, interval=500, cache_frame_data=False)
+# animate(0)
 plt.show()
 
 print("---done---")
