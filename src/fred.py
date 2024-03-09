@@ -2,7 +2,7 @@ from data_manifest import DataManifest
 import matplotlib
 from matplotlib import dates as mdates
 import pandas as pd
-from streaming_stock_indicators import StreamingStockIndicators
+from streaming_stock_indicators import MovingAverageIndicator, StreamingStockIndicators
 matplotlib.use('TkAgg')  # Replace 'TkAgg' with 'Qt5Agg', 'WXAgg', etc.
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -29,8 +29,10 @@ begin = data_manifest.start_time
 begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
 # data_generator = data_manifest.stream_data_and_window(begin, product, platform, time_period)
 # data_iter = iter(data_generator)
-streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=100)
-data_generator = streaming_stock_indicators.stream_data_and_window(begin, product, platform, time_period)
+window_size = 100
+moving_average_indicator = MovingAverageIndicator(window_size=window_size, lookback_period=10)
+streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=window_size)
+data_generator = streaming_stock_indicators.stream_data_and_window(begin, product, platform, time_period, indicators=[moving_average_indicator])
 data_iter = iter(data_generator)
 
 

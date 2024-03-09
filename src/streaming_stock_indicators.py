@@ -11,7 +11,6 @@ class Indicator(ABC):
     @abstractmethod    
     def step(self, 
             rows: Dict[str, np.ndarray], 
-            cur_step: Dict[str, np.number],
             indicators: List['Indicator']):
         pass
 
@@ -73,12 +72,12 @@ class StreamingStockIndicators:
 
             avaliable_indicators = []
             for indicator in indicators:
-                indicator.step(rows, cur_step, avaliable_indicators)
+                indicator.step(rows, avaliable_indicators)
                 avaliable_indicators.append(indicator)
 
             for indicator in indicators:
-                cur_step = indicator.cur_step
-                rows = indicator.rows
+                cur_step.update(indicator.cur_step)
+                rows.update(indicator.rows)
 
             if fill_window and current_window.shape[1] == self.window_size:
                 yield cur_step, rows
@@ -93,7 +92,6 @@ class MovingAverageIndicator(Indicator):
 
     def step(self, 
             rows: Dict[str, np.ndarray], 
-            cur_step: Dict[str, np.number],
             indicators: List[Indicator]):
         
         sma = np.nan
@@ -105,14 +103,14 @@ class MovingAverageIndicator(Indicator):
             last_ema = self.rows['ema'][-1] if len(self.rows['ema']) > 0 else sma
             alpha = 2 / (self.lookback_period + 1)
             ema = (recent_value - last_ema) * alpha + last_ema         
+        cur_step = {}
         cur_step['sma'] = sma
         cur_step['ema'] = ema
 
         data = [cur_step[key] for key in self.keys]
         self.window.add_data(data)
 
-        for k in self._keys:
-            rows[k] = self.rows[k]
+
 
     @property
     def keys(self) -> List[str]:
