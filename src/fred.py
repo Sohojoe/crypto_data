@@ -122,10 +122,16 @@ def animate(i):
 
     ax1.clear()
     ax2.clear()
+    addplot = [
+        mpf.make_addplot(data['sma'], type='line', color='orange', ax=ax1),
+        mpf.make_addplot(data['ema'], type='line', color='green', ax=ax1)
+    ]
+
     mpf.plot(
         data, type='candle', 
         style=my_style_background, 
-        volume=ax2, ax=ax1)
+        volume=ax2, ax=ax1,
+        addplot=addplot)
 
     upward_fractals, downward_fractals = find_fractals(data)
     for i in upward_fractals:

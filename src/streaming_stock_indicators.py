@@ -100,7 +100,7 @@ class MovingAverageIndicator(Indicator):
             view = rows['close'][-self.lookback_period:]  # Select the most recent 'window' data points
             sma = np.mean(view)  # Calculate the mean of these points
             recent_value = view[-1]  # Get the most recent data point
-            last_ema = self.rows['ema'][-1] if len(self.rows['ema']) > 0 else sma
+            last_ema = self.rows['ema'][-1] if not np.isnan(self.rows['ema'][-1]) else recent_value
             alpha = 2 / (self.lookback_period + 1)
             ema = (recent_value - last_ema) * alpha + last_ema         
         cur_step = {}
