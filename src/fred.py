@@ -2,14 +2,16 @@ from data_manifest import DataManifest
 import matplotlib
 from matplotlib import dates as mdates
 import pandas as pd
+from streaming_stock_indicators import StreamingStockIndicators
 matplotlib.use('TkAgg')  # Replace 'TkAgg' with 'Qt5Agg', 'WXAgg', etc.
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 import mplfinance as mpf
+from datetime import datetime, timezone
 
 
-data_manifest = DataManifest('data', window_size=100)
+data_manifest = DataManifest('data')
 
 product = data_manifest.products[0]
 platform = data_manifest.platforms[0]
@@ -23,12 +25,17 @@ time_period = '1D'
 #     print(window)
 #     print('---')
 
-data_generator = data_manifest.stream_data_and_window(data_manifest.start_time, product, platform, time_period)
+begin = data_manifest.start_time
+begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
+# data_generator = data_manifest.stream_data_and_window(begin, product, platform, time_period)
+# data_iter = iter(data_generator)
+streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=100)
+data_generator = streaming_stock_indicators.stream_data_and_window(begin, product, platform, time_period)
 data_iter = iter(data_generator)
 
 
 # def show_plot(window_data):
-#     data = pd.DataFrame(window_data.T[:, :-1], index=window_data[-1], columns=['Low', 'High', 'Open', 'Close', 'Volume'])
+#     data = pd.DataFrame(window_data.T[:, :-1], index=window_data[-1], columns=['low', 'high', 'Open', 'Close', 'Volume'])
 #     data['Volume'] = data['Volume'].astype(int)
 #     data.index = pd.to_datetime(data.index, unit='s')
 #     mpf.plot(data, type='candle', style='charles', volume=True)
@@ -88,24 +95,27 @@ for spine in ax2.spines.values():
     spine.set_color(line_color)
 
 def find_fractals(data):
-    # Assuming 'data' is a DataFrame with 'High' and 'Low' columns
+    # Assuming 'data' is a DataFrame with 'high' and 'low' columns
     upward_fractals = []
     downward_fractals = []
     
     for i in range(2, len(data) - 2):
         # Use .iloc for positional indexing
-        if data['High'].iloc[i] > data['High'].iloc[i-1] and data['High'].iloc[i] > data['High'].iloc[i-2] and data['High'].iloc[i] > data['High'].iloc[i+1] and data['High'].iloc[i] > data['High'].iloc[i+2]:
+        if data['high'].iloc[i] > data['high'].iloc[i-1] and data['high'].iloc[i] > data['high'].iloc[i-2] and data['high'].iloc[i] > data['high'].iloc[i+1] and data['high'].iloc[i] > data['high'].iloc[i+2]:
             # upward_fractals.append(data.index[i])
             upward_fractals.append(i)
-        if data['Low'].iloc[i] < data['Low'].iloc[i-1] and data['Low'].iloc[i] < data['Low'].iloc[i-2] and data['Low'].iloc[i] < data['Low'].iloc[i+1] and data['Low'].iloc[i] < data['Low'].iloc[i+2]:
+        if data['low'].iloc[i] < data['low'].iloc[i-1] and data['low'].iloc[i] < data['low'].iloc[i-2] and data['low'].iloc[i] < data['low'].iloc[i+1] and data['low'].iloc[i] < data['low'].iloc[i+2]:
             # downward_fractals.append(data.index[i])
             upward_fractals.append(i)
     return upward_fractals, downward_fractals
 
 def animate(i):
-    step, window = next(data_iter)
-    data = pd.DataFrame(window.T[:, :-1], index=window[-1], columns=['Low', 'High', 'Open', 'Close', 'Volume'])
-    data['Volume'] = data['Volume'].astype(int)
+    # step, window = next(data_iter)
+    cur_step, rows = next(data_iter)
+    # data = pd.DataFrame(window.T[:, :-1], index=window[-1], columns=['low', 'high', 'Open', 'Close', 'Volume'])
+    data = pd.DataFrame(rows)
+    data = data.set_index('time')
+    data['volume'] = data['volume'].astype(int)
     data.index = pd.to_datetime(data.index, unit='s')
 
     ax1.clear()
@@ -117,13 +127,13 @@ def animate(i):
 
     upward_fractals, downward_fractals = find_fractals(data)
     for i in upward_fractals:
-        ax1.annotate('▲', (i, data['High'].iloc[i]), color=down_candle_color, 
+        ax1.annotate('▲', (i, data['high'].iloc[i]), color=down_candle_color, 
                      xytext=(0, 10),
                      textcoords='offset points',
                     #  zorder=5, 
                      fontsize=14, ha='center')
     for i in upward_fractals:
-        ax1.annotate('▼', (i, data['Low'].iloc[i]-10), color=up_candle_color, 
+        ax1.annotate('▼', (i, data['low'].iloc[i]-10), color=up_candle_color, 
                      xytext=(0, -8),
                      textcoords='offset points',
                     #  zorder=5, 
@@ -134,7 +144,7 @@ def animate(i):
     fig.canvas.draw()
     
 
-ani = FuncAnimation(fig, animate, interval=500, cache_frame_data=False)
+ani = FuncAnimation(fig, animate, interval=50, cache_frame_data=False)
 # animate(0)
 plt.show()
 

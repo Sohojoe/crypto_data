@@ -5,36 +5,16 @@ import numpy as np
 from streaming_window import StreamingWindow
 import csv
 
-def _convert_str_to_datetime(date_str):
-    # # Try parsing with datetime included
-    # try:
-    #     return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-    # except ValueError:
-    #     # Fall back to date only
-    #     return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-    formats = ["%Y-%m-%d %H-%M-%S", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"]  # Added format with hyphens
-        
-    for fmt in formats:
-        try:
-            # Attempt to parse the string with the current format
-            return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
-        except ValueError:
-            # If parsing fails, try the next format
-            continue
-    
-    # If none of the formats match, raise an error
-    raise ValueError("date_str does not match any known format")
 class DataManifest:
     # Mapping of time periods to folder names
 
-    def __init__(self, root_folder, window_size = 200):
+    def __init__(self, root_folder):
         self.root_folder = Path(root_folder)
         self.products = None
         self.platforms = None
         self.periods = None
         self.start_time = None
         self.end_time = None
-        self.window_size = window_size
         self.query_data_structure()
 
     def to_path(self, start_time, end_time, product, platform, time_period):
@@ -62,9 +42,22 @@ class DataManifest:
         end_str, _ = end_str.split('.csv')
         # start_time = datetime.strptime(start_str, '%Y-%m-%d %H-%M-%S')
         # end_time = datetime.strptime(end_str, '%Y-%m-%d %H-%M-%S')
-        start_time = _convert_str_to_datetime(start_str)
-        end_time = _convert_str_to_datetime(end_str)
+        start_time = self.convert_str_to_datetime(start_str)
+        end_time = self.convert_str_to_datetime(end_str)
         return start_time, end_time, product, platform, time_period
+    
+    def convert_str_to_datetime(self, date_str):
+        formats = ["%Y-%m-%d %H-%M-%S", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"]  # Added format with hyphens
+        for fmt in formats:
+            try:
+                # Attempt to parse the string with the current format
+                return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
+            except ValueError:
+                # If parsing fails, try the next format
+                continue
+        # If none of the formats match, raise an error
+        raise ValueError("date_str does not match any known format")
+
 
     def query_data_structure(self):
         self._data_structure = {}
@@ -100,18 +93,6 @@ class DataManifest:
 
 
     def stream_data(self, start_time, product, platform, time_period):
-        """
-        Stream data points from files within the start and end time range that match the query criteria.
-        
-        Parameters:
-            start_time (datetime): The start time for the data stream.
-            product (str): The product to filter the data by.
-            platform (str): The platform to filter the data by.
-            time_period (str): The time period to filter the data by.
-            
-        Yields:
-            dict: A dictionary representing a data point from the stream.
-        """
         if product in self._data_structure:
             if platform in self._data_structure[product]:
                 if time_period in self._data_structure[product][platform]:
@@ -124,42 +105,7 @@ class DataManifest:
                             with open(file_path, mode='r', encoding='utf-8') as file:
                                 reader = csv.DictReader(file)
                                 for row in reader:
-                                    # Assuming each row contains a timestamp, convert it to a datetime object
-                                    # This requires knowing the column name for the timestamp in your CSV
-                                    row_time = _convert_str_to_datetime(row['Time'])
-                                    # Only yield rows within the specified start and end time
+                                    row_time = self.convert_str_to_datetime(row['Time'])
                                     if start_time <= row_time <= self.end_time:
                                         yield row
 
-    def stream_data_and_window(self, start_time, product, platform, time_period, fill_window=True):
-        # data_types = [
-        #     ('low', 'float64'),
-        #     ('high', 'float64'),
-        #     ('open', 'float64'),
-        #     ('close', 'float64'),
-        #     ('volume', 'float64'),
-        #     ('time', 'int64'),
-        # ]
-        window = StreamingWindow(window_size=self.window_size, num_features=6, )
-
-        for step in self.stream_data(start_time, product, platform, time_period):
-            # unix_time = np.int64(_convert_str_to_datetime(step['Time']).timestamp())
-            # data = np.array([np.float64(step['Low']), np.float64(step['High']), 
-            #         np.float64(step['Open']), np.float64(step['Close']), 
-            #         np.float64(step['Volume']), unix_time])
-            unix_time = np.float64(_convert_str_to_datetime(step['Time']).timestamp())
-            data = np.array([np.float64(step['Low']), np.float64(step['High']), 
-                    np.float64(step['Open']), np.float64(step['Close']), 
-                    np.float64(step['Volume']), unix_time])
-            window.add_data(data)
-            current_window = window.get_current_window()
-            step = {
-            'Low': current_window[0, -1],
-            'High': current_window[1, -1],
-            'Open': current_window[2, -1],
-            'Close': current_window[3, -1],
-            'Volume': current_window[4, -1],
-            'Time': current_window[5, -1]
-            }
-            if fill_window and current_window.shape[1] == self.window_size:
-                yield step, current_window
