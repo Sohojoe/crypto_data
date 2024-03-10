@@ -67,27 +67,19 @@ class CandleStickIndicator(Indicator):
 
     def step(self, 
             indicators: List[Indicator],
-            step):
+            stream_data):
         cur_step = {}
-        cur_step["low"] = np.float64(step['Low'])
-        cur_step["high"] = np.float64(step['High'])
-        cur_step["open"] = np.float64(step['Open'])
-        cur_step["close"] = np.float64(step['Close'])
-        cur_step["volume"] = np.float64(step['Volume'])
-        cur_step["time"] = np.float64(DataManifest.convert_str_to_datetime(step['Time']).timestamp())
+        cur_step["low"] = np.float64(stream_data['Low'])
+        cur_step["high"] = np.float64(stream_data['High'])
+        cur_step["open"] = np.float64(stream_data['Open'])
+        cur_step["close"] = np.float64(stream_data['Close'])
+        cur_step["volume"] = np.float64(stream_data['Volume'])
+        cur_step["time"] = np.float64(DataManifest.convert_str_to_datetime(stream_data['Time']).timestamp())
         
-        # assert the stock_state keys are the same and same order as self.keys
         assert list(cur_step.keys()) == self.keys
         data = [cur_step[key] for key in self.keys]
         self.window.add_data(data)
-        # current_window = self.window.get_current_window()
-        # rows = {}
-        # rows["low"] = current_window[0, :]
-        # rows["high"] = current_window[1, :]
-        # rows["open"] = current_window[2, :]
-        # rows["close"] = current_window[3, :]
-        # rows["volume"] = current_window[4, :]
-        # rows["time"] = current_window[5, :]
+
     @property
     def keys(self) -> List[str]:
         return self._keys

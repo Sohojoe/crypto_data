@@ -2,7 +2,7 @@ from data_manifest import DataManifest
 import matplotlib
 from matplotlib import dates as mdates
 import pandas as pd
-from streaming_stock_indicators import StreamingStockIndicators, MovingAverageIndicator, WilliamsFractalsIndicator
+from streaming_stock_indicators import CandleStickIndicator, StreamingStockIndicators, MovingAverageIndicator, WilliamsFractalsIndicator
 matplotlib.use('TkAgg')  # Replace 'TkAgg' with 'Qt5Agg', 'WXAgg', etc.
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -30,8 +30,6 @@ begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
 # data_generator = data_manifest.stream_data_and_window(begin, product, platform, time_period)
 # data_iter = iter(data_generator)
 window_size = 100
-moving_average_indicator = MovingAverageIndicator(window_size=window_size, lookback_period=10)
-williams_fractals_indicator = WilliamsFractalsIndicator(window_size=window_size)
 streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=window_size)
 data_generator = streaming_stock_indicators.stream_data_and_window(
     begin, 
@@ -39,21 +37,10 @@ data_generator = streaming_stock_indicators.stream_data_and_window(
     platform, 
     time_period, 
     indicators=[
-        moving_average_indicator,
-        williams_fractals_indicator
+        MovingAverageIndicator(window_size=window_size, lookback_period=10),
+        WilliamsFractalsIndicator(window_size=window_size)
         ])
 data_iter = iter(data_generator)
-
-
-# def show_plot(window_data):
-#     data = pd.DataFrame(window_data.T[:, :-1], index=window_data[-1], columns=['low', 'high', 'Open', 'Close', 'Volume'])
-#     data['Volume'] = data['Volume'].astype(int)
-#     data.index = pd.to_datetime(data.index, unit='s')
-#     mpf.plot(data, type='candle', style='charles', volume=True)
-
-# for _ in range(10):
-#     step, window = next(data_iter)
-#     show_plot(window)
 
 background_color = '#161A25'
 up_candle_color = '#089981'
@@ -106,47 +93,47 @@ for spine in ax2.spines.values():
     spine.set_color(line_color)
 
 
-def animate(i):
-    # step, window = next(data_iter)
-    indicators = next(data_iter)
-    # rows = merge of dicts of rows from each indicator
-    rows = {key: value for indicator in indicators for key, value in indicator.rows.items()}
-    # data = pd.DataFrame(window.T[:, :-1], index=window[-1], columns=['low', 'high', 'Open', 'Close', 'Volume'])
-    data = pd.DataFrame(rows)
-    data = data.set_index('time')
-    data['volume'] = data['volume'].astype(int)
-    data.index = pd.to_datetime(data.index, unit='s')
+def plot_indicators(indicators):
+    candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
+    moving_average_indicator = next((indicator for indicator in indicators if isinstance(indicator, MovingAverageIndicator)), None)
+    williams_fractals_indicator = next((indicator for indicator in indicators if isinstance(indicator, WilliamsFractalsIndicator)), None)
+    # rows = {key: value for indicator in indicators for key, value in indicator.rows.items()}
+    rows = candle_stick_indicator.rows
+    cs_dataframe = pd.DataFrame(rows)
+    cs_dataframe = cs_dataframe.set_index('time')
+    cs_dataframe['volume'] = cs_dataframe['volume'].astype(int)
+    cs_dataframe.index = pd.to_datetime(cs_dataframe.index, unit='s')
 
     ax1.clear()
     ax2.clear()
     addplot = [
     ]
-    if 'sma' in data.columns:
-        addplot.append(mpf.make_addplot(data['sma'], type='line', color='orange', ax=ax1))
-    if 'ema' in data.columns:
-        addplot.append(mpf.make_addplot(data['ema'], type='line', color='green', ax=ax1))
+    if moving_average_indicator:
+        ma_dataframe = pd.DataFrame(moving_average_indicator.rows)
+        # add the data index to ma_data
+        ma_dataframe.index = cs_dataframe.index
+        addplot.append(mpf.make_addplot(ma_dataframe['sma'], type='line', color='orange', ax=ax1))
+        addplot.append(mpf.make_addplot(ma_dataframe['ema'], type='line', color='green', ax=ax1))
 
 
     mpf.plot(
-        data, type='candle', 
+        cs_dataframe, type='candle', 
         style=my_style_background, 
         volume=ax2, ax=ax1,
         addplot=addplot)
 
-    if 'higher_fractal' in data.columns:
-        higher_fractals = data.loc[data['higher_fractal'] > 0]
-        for index in higher_fractals.index:
-            i = data.index.get_loc(index)
-            ax1.annotate('▲', (i, data['high'].iloc[i]), color=down_candle_color, 
+    if williams_fractals_indicator:
+        indices = np.where(williams_fractals_indicator.rows['higher_fractal'] > 0)[0]
+        for i in indices:
+            ax1.annotate('▲', (i, cs_dataframe['high'].iloc[i]), color=down_candle_color, 
                         xytext=(0, 10),
                         textcoords='offset points',
                         #  zorder=5, 
                         fontsize=14, ha='center')
-    if 'lower_fractal' in data.columns:
-        lower_fractals = data.loc[data['lower_fractal'] > 0]
-        for index in lower_fractals.index:
-            i = data.index.get_loc(index)
-            ax1.annotate('▼', (i, data['low'].iloc[i]-200), color=up_candle_color, 
+
+        indices = np.where(williams_fractals_indicator.rows['lower_fractal'] > 0)[0]
+        for i in indices:
+            ax1.annotate('▼', (i, cs_dataframe['low'].iloc[i]-200), color=up_candle_color, 
                         xytext=(0, -8),
                         textcoords='offset points',
                         #  zorder=5, 
@@ -154,7 +141,12 @@ def animate(i):
 
     ax1.yaxis.label.set_color(text_white)
     ax2.yaxis.label.set_color(text_white)
-    fig.canvas.draw()
+    fig.canvas.draw()    
+
+def animate(i):
+    # step, window = next(data_iter)
+    indicators = next(data_iter)
+    plot_indicators(indicators)
     
 
 ani = FuncAnimation(fig, animate, interval=50, cache_frame_data=False)
