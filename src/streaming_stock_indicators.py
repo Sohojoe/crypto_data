@@ -124,3 +124,47 @@ class MovingAverageIndicator(Indicator):
     def rows(self) -> Dict[str, np.ndarray]:
         # return dict(zip(self.keys, self.window.get_current_window()))
         return {key: self.window.get_current_window()[i, :] for i, key in enumerate(self._keys)}
+    
+
+class WilliamsFractalsIndicator(Indicator):
+    def __init__(self, window_size: int):
+        self.window_size = window_size
+        self._keys = ['lower_fractal', 'higher_fractal']
+        self.window = StreamingWindow(window_size=self.window_size, num_features=len(self.keys))
+
+    def step(self, 
+            rows: Dict[str, np.ndarray], 
+            indicators: List[Indicator]):
+
+        # cur step is always 0 are we are looking forward
+        cur_step = {}
+        cur_step['lower_fractal'] = np.nan
+        cur_step['higher_fractal'] = np.nan
+        data = [cur_step[key] for key in self.keys]
+        self.window.add_data(data)
+
+        window_priods = 2 + 1 + 2
+        if len(rows['close']) < window_priods:
+            return
+
+        low_idx = np.argmin(rows['low'][-5:])
+        if int(low_idx) == 2:
+            row = self.keys.index('lower_fractal')
+            self.window.set_cell(row, -3, 1.)
+        high_idx = np.argmax(rows['high'][-5:])
+        if int(high_idx) == 2:
+            row = self.keys.index('higher_fractal')
+            self.window.set_cell(row, -3, 1.)
+
+    @property
+    def keys(self) -> List[str]:
+        return self._keys
+
+    @property
+    def cur_step(self) -> Dict[str, np.number]:
+        return {key: value[-1] for key, value in self.rows.items()}
+
+    @property
+    def rows(self) -> Dict[str, np.ndarray]:
+        # return dict(zip(self.keys, self.window.get_current_window()))
+        return {key: self.window.get_current_window()[i, :] for i, key in enumerate(self._keys)}

@@ -20,6 +20,13 @@ class StreamingWindow:
         self.current_index = (self.current_index + 1) % self.window_size
         self.data_count += 1
 
+    # input column is relative to the current index
+    def set_cell(self, row, col, value):
+        index = self.current_index + col
+        self.buffer[row, index] = value
+        index = (index + self.window_size) % (self.window_size * 2)
+        self.buffer[row, index] = value
+
     def get_current_window(self):
         # Calculate the effective window size based on the amount of data added
         effective_window_size = min(self.data_count, self.window_size)

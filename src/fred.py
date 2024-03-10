@@ -2,7 +2,7 @@ from data_manifest import DataManifest
 import matplotlib
 from matplotlib import dates as mdates
 import pandas as pd
-from streaming_stock_indicators import MovingAverageIndicator, StreamingStockIndicators
+from streaming_stock_indicators import StreamingStockIndicators, MovingAverageIndicator, WilliamsFractalsIndicator
 matplotlib.use('TkAgg')  # Replace 'TkAgg' with 'Qt5Agg', 'WXAgg', etc.
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -31,8 +31,17 @@ begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
 # data_iter = iter(data_generator)
 window_size = 100
 moving_average_indicator = MovingAverageIndicator(window_size=window_size, lookback_period=10)
+williams_fractals_indicator = WilliamsFractalsIndicator(window_size=window_size)
 streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=window_size)
-data_generator = streaming_stock_indicators.stream_data_and_window(begin, product, platform, time_period, indicators=[moving_average_indicator])
+data_generator = streaming_stock_indicators.stream_data_and_window(
+    begin, 
+    product, 
+    platform, 
+    time_period, 
+    indicators=[
+        moving_average_indicator,
+        williams_fractals_indicator
+        ])
 data_iter = iter(data_generator)
 
 
@@ -96,20 +105,6 @@ ax2.set_ylabel('Volume', color=text_white)
 for spine in ax2.spines.values():
     spine.set_color(line_color)
 
-def find_fractals(data):
-    # Assuming 'data' is a DataFrame with 'high' and 'low' columns
-    upward_fractals = []
-    downward_fractals = []
-    
-    for i in range(2, len(data) - 2):
-        # Use .iloc for positional indexing
-        if data['high'].iloc[i] > data['high'].iloc[i-1] and data['high'].iloc[i] > data['high'].iloc[i-2] and data['high'].iloc[i] > data['high'].iloc[i+1] and data['high'].iloc[i] > data['high'].iloc[i+2]:
-            # upward_fractals.append(data.index[i])
-            upward_fractals.append(i)
-        if data['low'].iloc[i] < data['low'].iloc[i-1] and data['low'].iloc[i] < data['low'].iloc[i-2] and data['low'].iloc[i] < data['low'].iloc[i+1] and data['low'].iloc[i] < data['low'].iloc[i+2]:
-            # downward_fractals.append(data.index[i])
-            upward_fractals.append(i)
-    return upward_fractals, downward_fractals
 
 def animate(i):
     # step, window = next(data_iter)
@@ -123,9 +118,12 @@ def animate(i):
     ax1.clear()
     ax2.clear()
     addplot = [
-        mpf.make_addplot(data['sma'], type='line', color='orange', ax=ax1),
-        mpf.make_addplot(data['ema'], type='line', color='green', ax=ax1)
     ]
+    if 'sma' in data.columns:
+        addplot.append(mpf.make_addplot(data['sma'], type='line', color='orange', ax=ax1))
+    if 'ema' in data.columns:
+        addplot.append(mpf.make_addplot(data['ema'], type='line', color='green', ax=ax1))
+
 
     mpf.plot(
         data, type='candle', 
@@ -133,19 +131,24 @@ def animate(i):
         volume=ax2, ax=ax1,
         addplot=addplot)
 
-    upward_fractals, downward_fractals = find_fractals(data)
-    for i in upward_fractals:
-        ax1.annotate('▲', (i, data['high'].iloc[i]), color=down_candle_color, 
-                     xytext=(0, 10),
-                     textcoords='offset points',
-                    #  zorder=5, 
-                     fontsize=14, ha='center')
-    for i in upward_fractals:
-        ax1.annotate('▼', (i, data['low'].iloc[i]-10), color=up_candle_color, 
-                     xytext=(0, -8),
-                     textcoords='offset points',
-                    #  zorder=5, 
-                     fontsize=14, ha='center')
+    if 'higher_fractal' in data.columns:
+        higher_fractals = data.loc[data['higher_fractal'] > 0]
+        for index in higher_fractals.index:
+            i = data.index.get_loc(index)
+            ax1.annotate('▲', (i, data['high'].iloc[i]), color=down_candle_color, 
+                        xytext=(0, 10),
+                        textcoords='offset points',
+                        #  zorder=5, 
+                        fontsize=14, ha='center')
+    if 'lower_fractal' in data.columns:
+        lower_fractals = data.loc[data['lower_fractal'] > 0]
+        for index in lower_fractals.index:
+            i = data.index.get_loc(index)
+            ax1.annotate('▼', (i, data['low'].iloc[i]-200), color=up_candle_color, 
+                        xytext=(0, -8),
+                        textcoords='offset points',
+                        #  zorder=5, 
+                        fontsize=14, ha='center')
 
     ax1.yaxis.label.set_color(text_white)
     ax2.yaxis.label.set_color(text_white)
