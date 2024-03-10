@@ -23,7 +23,7 @@ time_period = '1D'
 #     print('---')
 
 begin = data_manifest.start_time
-begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
+# begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
 # data_generator = data_manifest.stream_data_and_window(begin, product, platform, time_period)
 # data_iter = iter(data_generator)
 window_size = 100
@@ -55,26 +55,27 @@ while True:
         indicators = next(data_iter)
         candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
         williams_fractals_indicator = next((indicator for indicator in indicators if isinstance(indicator, WilliamsFractalsIndicator)), None)
-        close = candle_stick_indicator.rows['close'][-1]
+        # close = candle_stick_indicator.rows['close'][-1]
+        open = candle_stick_indicator.rows['open'][-1] # use open so we can see on charts
         if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
             higher_count += 1
             higher_value = candle_stick_indicator.rows['high'][-3]
         if (williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
             lower_count += 1
             lower_value = candle_stick_indicator.rows['low'][-3]
-        if higher_value and cash and close > higher_value:
-            coins = cash / close
-            print(f"buy {coins} for ${cash} - close: {close}, above higher: {higher_value}")
+        if higher_value and cash and open > higher_value:
+            coins = cash / open
+            print(f"buy {coins} for ${cash} - open: {open}, above higher: {higher_value}")
             cash = 0
-            entry = close
+            entry = open
             # visualize_indicators = VisualizeIndicators()
             # visualize_indicators.visualize_frame(indicators)
             higher_value = None
-        if lower_value and coins and close < lower_value:
-            cash = coins * close
-            return_percent = ((close/entry)-1.)*100.
-            # s = f"{return_percent:.2f}% bought at {entry}, sold at {close}, p&l: ${close - entry}"
-            print(f"stop - return: {return_percent:.2f}% bought at {entry}, sold at {close}, p&l: ${close - entry}")
+        if lower_value and coins and open < lower_value:
+            cash = coins * open
+            return_percent = ((open/entry)-1.)*100.
+            s = f"{return_percent:.2f}% bought at {entry}, sold at {open}, p&l: ${open - entry}"
+            print(f"stop - return: {return_percent:.2f}% bought at {entry}, sold at {open}, p&l: ${open - entry}")
             outcomes.append(return_percent)
             coins = 0
             # visualize_indicators = VisualizeIndicators()
