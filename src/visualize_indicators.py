@@ -114,8 +114,8 @@ class VisualizeIndicators():
 
             indices = np.where(williams_fractals_indicator.rows['lower_fractal'] > 0)[0]
             for i in indices:
-                self.ax1.annotate('▼', (i, cs_dataframe['low'].iloc[i]-200), color=self.up_candle_color, 
-                            xytext=(0, -8),
+                self.ax1.annotate('▼', (i, cs_dataframe['low'].iloc[i]), color=self.up_candle_color, 
+                            xytext=(0, -15),
                             textcoords='offset points',
                             #  zorder=5, 
                             fontsize=14, ha='center')
