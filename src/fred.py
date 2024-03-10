@@ -108,7 +108,9 @@ for spine in ax2.spines.values():
 
 def animate(i):
     # step, window = next(data_iter)
-    cur_step, rows = next(data_iter)
+    indicators = next(data_iter)
+    # rows = merge of dicts of rows from each indicator
+    rows = {key: value for indicator in indicators for key, value in indicator.rows.items()}
     # data = pd.DataFrame(window.T[:, :-1], index=window[-1], columns=['low', 'high', 'Open', 'Close', 'Volume'])
     data = pd.DataFrame(rows)
     data = data.set_index('time')

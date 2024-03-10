@@ -42,11 +42,12 @@ class DataManifest:
         end_str, _ = end_str.split('.csv')
         # start_time = datetime.strptime(start_str, '%Y-%m-%d %H-%M-%S')
         # end_time = datetime.strptime(end_str, '%Y-%m-%d %H-%M-%S')
-        start_time = self.convert_str_to_datetime(start_str)
-        end_time = self.convert_str_to_datetime(end_str)
+        start_time = DataManifest.convert_str_to_datetime(start_str)
+        end_time = DataManifest.convert_str_to_datetime(end_str)
         return start_time, end_time, product, platform, time_period
     
-    def convert_str_to_datetime(self, date_str):
+    @staticmethod
+    def convert_str_to_datetime(date_str):
         formats = ["%Y-%m-%d %H-%M-%S", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"]  # Added format with hyphens
         for fmt in formats:
             try:
@@ -105,7 +106,7 @@ class DataManifest:
                             with open(file_path, mode='r', encoding='utf-8') as file:
                                 reader = csv.DictReader(file)
                                 for row in reader:
-                                    row_time = self.convert_str_to_datetime(row['Time'])
+                                    row_time = DataManifest.convert_str_to_datetime(row['Time'])
                                     if start_time <= row_time <= self.end_time:
                                         yield row
 

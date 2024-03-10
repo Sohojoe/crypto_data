@@ -35,7 +35,6 @@ class StreamingStockIndicators:
     def __init__(self, data_manifest:DataManifest, window_size:int):
         self.window_size:int = window_size
         self.data_manifest:DataManifest = data_manifest
-        self.keys:List[str] = ['low', 'high', 'open', 'close', 'volume', 'time']
 
     def stream_data_and_window(self,
                 start_time, 
@@ -46,42 +45,61 @@ class StreamingStockIndicators:
                 fill_window=True):
         if indicators is None:
             indicators = []
-        window = StreamingWindow(window_size=self.window_size, num_features=len(self.keys))
-        
-        for step in self.data_manifest.stream_data(start_time, product, platform, time_period):
-            cur_step = {}
-            cur_step["low"] = np.float64(step['Low'])
-            cur_step["high"] = np.float64(step['High'])
-            cur_step["open"] = np.float64(step['Open'])
-            cur_step["close"] = np.float64(step['Close'])
-            cur_step["volume"] = np.float64(step['Volume'])
-            cur_step["time"] = np.float64(self.data_manifest.convert_str_to_datetime(step['Time']).timestamp())
-            
-            # assert the stock_state keys are the same and same order as self.keys
-            assert list(cur_step.keys()) == self.keys
-            data = [cur_step[key] for key in self.keys]
-            window.add_data(data)
-            current_window = window.get_current_window()
-            rows = {}
-            rows["low"] = current_window[0, :]
-            rows["high"] = current_window[1, :]
-            rows["open"] = current_window[2, :]
-            rows["close"] = current_window[3, :]
-            rows["volume"] = current_window[4, :]
-            rows["time"] = current_window[5, :]
 
+        candle_stick_indicator = CandleStickIndicator(window_size=self.window_size)
+        
+        for stream_data in self.data_manifest.stream_data(start_time, product, platform, time_period):
             avaliable_indicators = []
+            candle_stick_indicator.step(avaliable_indicators, stream_data)
+            avaliable_indicators.append(candle_stick_indicator)
             for indicator in indicators:
-                indicator.step(rows, avaliable_indicators)
+                indicator.step(avaliable_indicators)
                 avaliable_indicators.append(indicator)
 
-            for indicator in indicators:
-                cur_step.update(indicator.cur_step)
-                rows.update(indicator.rows)
+            if fill_window and candle_stick_indicator.rows['close'].shape[0] >= self.window_size:
+                yield avaliable_indicators
 
-            if fill_window and current_window.shape[1] == self.window_size:
-                yield cur_step, rows
+class CandleStickIndicator(Indicator):
+    def __init__(self, window_size: int):
+        self.window_size = window_size
+        self._keys = ['low', 'high', 'open', 'close', 'volume', 'time']
+        self.window = StreamingWindow(window_size=self.window_size, num_features=len(self.keys))
 
+    def step(self, 
+            indicators: List[Indicator],
+            step):
+        cur_step = {}
+        cur_step["low"] = np.float64(step['Low'])
+        cur_step["high"] = np.float64(step['High'])
+        cur_step["open"] = np.float64(step['Open'])
+        cur_step["close"] = np.float64(step['Close'])
+        cur_step["volume"] = np.float64(step['Volume'])
+        cur_step["time"] = np.float64(DataManifest.convert_str_to_datetime(step['Time']).timestamp())
+        
+        # assert the stock_state keys are the same and same order as self.keys
+        assert list(cur_step.keys()) == self.keys
+        data = [cur_step[key] for key in self.keys]
+        self.window.add_data(data)
+        # current_window = self.window.get_current_window()
+        # rows = {}
+        # rows["low"] = current_window[0, :]
+        # rows["high"] = current_window[1, :]
+        # rows["open"] = current_window[2, :]
+        # rows["close"] = current_window[3, :]
+        # rows["volume"] = current_window[4, :]
+        # rows["time"] = current_window[5, :]
+    @property
+    def keys(self) -> List[str]:
+        return self._keys
+
+    @property
+    def cur_step(self) -> Dict[str, np.number]:
+        return {key: value[-1] for key, value in self.rows.items()}
+
+    @property
+    def rows(self) -> Dict[str, np.ndarray]:
+        # return dict(zip(self.keys, self.window.get_current_window()))
+        return {key: self.window.get_current_window()[i, :] for i, key in enumerate(self._keys)}        
 
 class MovingAverageIndicator(Indicator):
     def __init__(self, window_size: int, lookback_period:int):
@@ -91,9 +109,11 @@ class MovingAverageIndicator(Indicator):
         self.lookback_period = lookback_period
 
     def step(self, 
-            rows: Dict[str, np.ndarray], 
             indicators: List[Indicator]):
         
+        candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
+        rows = candle_stick_indicator.rows
+
         sma = np.nan
         ema= np.nan
         if len(rows['close']) >= self.lookback_period:
@@ -109,8 +129,6 @@ class MovingAverageIndicator(Indicator):
 
         data = [cur_step[key] for key in self.keys]
         self.window.add_data(data)
-
-
 
     @property
     def keys(self) -> List[str]:
@@ -133,8 +151,10 @@ class WilliamsFractalsIndicator(Indicator):
         self.window = StreamingWindow(window_size=self.window_size, num_features=len(self.keys))
 
     def step(self, 
-            rows: Dict[str, np.ndarray], 
             indicators: List[Indicator]):
+
+        candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
+        rows = candle_stick_indicator.rows
 
         # cur step is always 0 are we are looking forward
         cur_step = {}
