@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 
-class PlotIndicators():
+class VisualizeIndicators():
     def __init__(self):
         # Initialization with visualization settings (colors, etc.)
         self.background_color = '#161A25'
@@ -63,11 +63,11 @@ class PlotIndicators():
         self.my_style_background = my_style_background
         self.fig = fig
 
-    def plot_indicators(self, indicators):
-        self._plot_indicators(indicators)
+    def visualize_frame(self, indicators):
+        self._render_indicators(indicators)
         plt.show()
 
-    def _plot_indicators(self, indicators):
+    def _render_indicators(self, indicators):
         """
         Render a single set of indices for debugging and visualization.
         
@@ -124,7 +124,7 @@ class PlotIndicators():
         self.ax2.yaxis.label.set_color(self.text_white)
         self.fig.canvas.draw()    
 
-    def plot_iterator(self, data_iter):
+    def visualize_iterator(self, data_iter):
         """
         Render enumerated data, continuing until the enumerator is empty.
         
@@ -135,7 +135,7 @@ class PlotIndicators():
         def animate(i):
             # step, window = next(data_iter)
             indicators = next(data_iter)
-            self._plot_indicators(indicators)
+            self._render_indicators(indicators)
 
         ani = FuncAnimation(self.fig, animate, interval=50, cache_frame_data=False)
         # animate(0)

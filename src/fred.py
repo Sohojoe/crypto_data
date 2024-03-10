@@ -2,7 +2,7 @@ from data_manifest import DataManifest
 import pandas as pd
 from streaming_stock_indicators import CandleStickIndicator, StreamingStockIndicators, MovingAverageIndicator, WilliamsFractalsIndicator
 from datetime import datetime, timezone
-from plot_indicators import PlotIndicators
+from visualize_indicators import VisualizeIndicators
 
 data_manifest = DataManifest('data')
 
@@ -36,13 +36,13 @@ data_generator = streaming_stock_indicators.stream_data_and_window(
 data_iter = iter(data_generator)
 
 
-plot_indicators = PlotIndicators()
-plot_indicators.plot_iterator(data_iter)
+visualize_indicators = VisualizeIndicators()
+# visualize_indicators.visualize_iterator(data_iter)
     
-# indicators = next(data_iter)
-# plot_indicators.plot_indicators(indicators)
-# plot_indicators = PlotIndicators()
-# indicators = next(data_iter)
-# plot_indicators.plot_indicators(indicators)
+indicators = next(data_iter)
+visualize_indicators.visualize_frame(indicators)
+visualize_indicators = VisualizeIndicators()
+indicators = next(data_iter)
+visualize_indicators.visualize_frame(indicators)
 
 print("---done---")
