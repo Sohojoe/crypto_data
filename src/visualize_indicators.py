@@ -132,12 +132,15 @@ class VisualizeIndicators():
         - data_iter: An iterator over the data sets to be visualized.
         """
         # Implementation to visualize each set of data until the enumerator is empty.
-        def animate(i):
-            # step, window = next(data_iter)
-            indicators = next(data_iter)
+        def animate(indicators):
+            # try:
+            #     indicators = next(data_iter)
+            # except StopIteration:
+            #     break            
+            # indicators = next(data_iter)
             self._render_indicators(indicators)
 
-        ani = FuncAnimation(self.fig, animate, interval=50, cache_frame_data=False)
+        ani = FuncAnimation(self.fig, animate, frames=data_iter, interval=50, cache_frame_data=False)
         # animate(0)
         plt.show()
 
