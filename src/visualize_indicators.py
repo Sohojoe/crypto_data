@@ -82,7 +82,7 @@ class VisualizeIndicators():
         rows = candle_stick_indicator.rows
         cs_dataframe = pd.DataFrame(rows)
         cs_dataframe = cs_dataframe.set_index('time')
-        cs_dataframe['volume'] = cs_dataframe['volume'].astype(int)
+        # cs_dataframe['volume'] = cs_dataframe['volume'].astype(int)
         cs_dataframe.index = pd.to_datetime(cs_dataframe.index, unit='s')
 
         self.ax1.clear()

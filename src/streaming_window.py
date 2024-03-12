@@ -4,9 +4,9 @@ class StreamingWindow:
     def __init__(self, window_size, num_features=5, dtype=np.float64):
         self.window_size = window_size
         self.num_features = num_features
-        self.buffer = np.zeros((num_features, window_size * 2), dtype=dtype)
-        self.current_index = 0  # Tracks the current timestep for updates
-        self.data_count = 0  # Tracks how many times data has been added
+        self.buffer = np.full((num_features, window_size * 2), np.nan, dtype=dtype)
+        self.current_index = 0 # Tracks the current timestep for updates
+        self.data_count = window_size # Tracks how many times data has been added
 
     def add_data(self, data):
         if len(data) != self.num_features:

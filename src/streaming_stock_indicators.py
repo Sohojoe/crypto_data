@@ -42,7 +42,7 @@ class StreamingStockIndicators:
                 platform, 
                 time_period, 
                 indicators:List[Indicator] = None,
-                fill_window=True):
+                fill_window=False):
         if indicators is None:
             indicators = []
 
@@ -56,14 +56,18 @@ class StreamingStockIndicators:
                 indicator.step(avaliable_indicators)
                 avaliable_indicators.append(indicator)
 
-            if fill_window and candle_stick_indicator.rows['close'].shape[0] >= self.window_size:
-                yield avaliable_indicators
+            if fill_window and candle_stick_indicator.rows['close'].shape[0] < self.window_size:
+                continue
+            yield avaliable_indicators
 
 class CandleStickIndicator(Indicator):
     def __init__(self, window_size: int):
         self.window_size = window_size
         self._keys = ['low', 'high', 'open', 'close', 'volume', 'time']
         self.window = StreamingWindow(window_size=self.window_size, num_features=len(self.keys))
+        row = self.keys.index('time')
+        for i in range(self.window_size):
+            self.window.set_cell(row, i, 0.)
 
     def step(self, 
             indicators: List[Indicator],
