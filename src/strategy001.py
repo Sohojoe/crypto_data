@@ -70,25 +70,24 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
             coins += trade.coins
             higher_value = None
             open_trades.append(trade)
-        # if lower_value and coins and open < lower_value:
-        #     cash = coins * open
-        #     return_percent = ((open/entry)-1.)*100.
-        #     s = f"{return_percent:.2f}% bought at {entry}, sold at {open}, p&l: ${open - entry}"
-        #     print(f"stop - return: {return_percent:.2f}% bought at {entry}, sold at {open}, p&l: ${open - entry}")
-        #     outcomes.append(return_percent)
-        #     coins = 0
-        #     # visualize_indicators = VisualizeIndicators()
-        #     # visualize_indicators.visualize_frame(indicators)
-        #     lower_value = None
-        if lower_value and coins and low < lower_value:
+        if lower_value and coins and open < lower_value:
             for trade in open_trades.copy():
-                cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value)
+                cash += trade.close(candle_stick_indicator.cur_step['time'], open)
                 coins -= trade.coins
                 open_trades.remove(trade)
                 closed_trades.append(trade)
             # visualize_indicators = VisualizeIndicators()
             # visualize_indicators.visualize_frame(indicators)
             lower_value = None
+        # if lower_value and coins and low < lower_value:
+        #     for trade in open_trades.copy():
+        #         cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value)
+        #         coins -= trade.coins
+        #         open_trades.remove(trade)
+        #         closed_trades.append(trade)
+        #     # visualize_indicators = VisualizeIndicators()
+        #     # visualize_indicators.visualize_frame(indicators)
+        #     lower_value = None
 
 
     print("----------------------")
@@ -190,7 +189,7 @@ for time_period in time_periods:
 df = pd.DataFrame(all_results)
 pd.options.display.float_format = '{:,.3f}'.format
 print(df)
-
+print(df.to_csv())
 # slipages = [.001, .0025, .005, .01, .015, .02, .025, .03, .035, .04, .045, .05]
 # time_period = '1D'
 # for slippage in slipages:
