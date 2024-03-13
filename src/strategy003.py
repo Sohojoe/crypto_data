@@ -13,7 +13,7 @@ from visualize_indicators import VisualizeIndicators
 #     print(window)
 #     print('---')
 
-def run_experiment(product, platform, time_period, begin, data_manifest, slippage):
+def run_experiment(product, platform, time_period, begin, data_manifest, slippage, end_time=None):
     window_size = 100
     streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=window_size)
     data_generator = streaming_stock_indicators.stream_data_and_window(
@@ -24,7 +24,8 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
         indicators=[
             # MovingAverageIndicator(window_size=window_size, lookback_period=10),
             WilliamsFractalsIndicator(window_size=window_size)
-            ])
+            ],
+        end_time=end_time)
     data_iter = iter(data_generator)
 
     # visualize_indicators = VisualizeIndicators()
@@ -99,7 +100,9 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
         trade.add_row_to_dataframe(df)
     # print dataframe as csv
     # print(df.to_csv())
-        
+    
+    if len(closed_trades) == 0:
+        return None
 
     total_return = cash
     total_return_percent = (total_return/start_cash)-1.
@@ -174,19 +177,61 @@ begin = data_manifest.start_time
 # data_generator = data_manifest.stream_data_and_window(begin, product, platform, time_period)
 # data_iter = iter(data_generator)
 
-# time_periods = ['1D', '6H', '1H', '15T', '1T']
-time_periods = ['1D', '6H', '1H', '15T']
-all_results = []
-slippages = [0, 0.005, 0.01]
-for time_period in time_periods:
-    for slippage in slippages:
-        result = run_experiment(product, platform, time_period, begin, data_manifest, slippage)
+if False:
+    # time_periods = ['1D', '6H', '1H', '15T', '1T']
+    time_periods = ['1D', '6H', '1H', '15T']
+    all_results = []
+    slippages = [0, 0.005, 0.01]
+    for time_period in time_periods:
+        for slippage in slippages:
+            result = run_experiment(product, platform, time_period, begin, data_manifest, slippage)
+            all_results.append(result)
+    # all_results is a list of dicts, please turn it into a dataframe
+    df = pd.DataFrame(all_results)
+    pd.options.display.float_format = '{:,.3f}'.format
+    print(df)
+    print(df.to_csv())
+if True:
+    print("--- compare start/end dates ---")
+    dates = [
+        # bitcoin halfending epocs
+        # Jan 3 2009
+        # November 28, 2012
+        # July 9, 2016
+        # May 11, 2020
+        # April 20 2024
+        # (datetime(2009, 1, 3), datetime(2012, 11, 28)),
+        # (datetime(2012, 11, 28), datetime(2016, 7, 9)),
+        (datetime(2016, 7, 9), datetime(2020, 5, 11)),
+        (datetime(2020, 5, 11), datetime(2024, 4, 20)),
+        (datetime(2024, 4, 20), datetime(2028, 1, 1)),
+        # years
+        (datetime(2016, 1, 1), datetime(2017, 12, 31)),
+        (datetime(2017, 1, 1), datetime(2018, 12, 31)),
+        (datetime(2018, 1, 1), datetime(2019, 12, 31)),
+        (datetime(2019, 1, 1), datetime(2020, 12, 31)),
+        (datetime(2020, 1, 1), datetime(2021, 12, 31)),
+        (datetime(2021, 1, 1), datetime(2022, 12, 31)),
+        (datetime(2022, 1, 1), datetime(2023, 12, 31)),
+        (datetime(2023, 1, 1), datetime(2024, 12, 31)),
+        (datetime(2024, 1, 1), datetime(2025, 12, 31)),
+    ]
+    all_results = []
+
+    for start, end in dates:
+        start = start.replace(tzinfo=timezone.utc)
+        end = end.replace(tzinfo=timezone.utc)
+        result = run_experiment(product, platform, '1D', start, data_manifest, 0.005, )
+        if result is None:
+            continue
+        result['start'] = start
+        result['end'] = end
         all_results.append(result)
-# all_results is a list of dicts, please turn it into a dataframe
-df = pd.DataFrame(all_results)
-pd.options.display.float_format = '{:,.3f}'.format
-print(df)
-print(df.to_csv())
+    df = pd.DataFrame(all_results)
+    pd.options.display.float_format = '{:,.3f}'.format
+    print(df)
+    print(df.to_csv())
+
 
 # slipages = [.001, .0025, .005, .01, .015, .02, .025, .03, .035, .04, .045, .05]
 # time_period = '1D'

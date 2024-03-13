@@ -93,7 +93,12 @@ class DataManifest:
 
 
 
-    def stream_data(self, start_time, product, platform, time_period):
+    def stream_data(self,
+                start_time,
+                product, 
+                platform, 
+                time_period,
+                end_time = None):
         if product in self._data_structure:
             if platform in self._data_structure[product]:
                 if time_period in self._data_structure[product][platform]:
@@ -101,12 +106,13 @@ class DataManifest:
                     for file_name in sorted(files):  # Ensure files are processed in chronological order
                         file_path = self.root_folder / product / platform / time_period / file_name
                         file_start_time, file_end_time, _, _, _ = self.from_path(str(file_path))
+                        end_time = end_time or self.end_time
                         # Only process files that overlap with the query time range
-                        if file_start_time <= self.end_time and file_end_time >= start_time:
+                        if file_start_time <= end_time and file_end_time >= start_time:
                             with open(file_path, mode='r', encoding='utf-8') as file:
                                 reader = csv.DictReader(file)
                                 for row in reader:
                                     row_time = DataManifest.convert_str_to_datetime(row['Time'])
-                                    if start_time <= row_time <= self.end_time:
+                                    if start_time <= row_time <= end_time:
                                         yield row
 

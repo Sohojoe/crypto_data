@@ -41,6 +41,7 @@ class StreamingStockIndicators:
                 product, 
                 platform, 
                 time_period, 
+                end_time = None,
                 indicators:List[Indicator] = None,
                 fill_window=False):
         if indicators is None:
@@ -48,7 +49,7 @@ class StreamingStockIndicators:
 
         candle_stick_indicator = CandleStickIndicator(window_size=self.window_size)
         
-        for stream_data in self.data_manifest.stream_data(start_time, product, platform, time_period):
+        for stream_data in self.data_manifest.stream_data(start_time, product, platform, time_period, end_time):
             avaliable_indicators = []
             candle_stick_indicator.step(avaliable_indicators, stream_data)
             avaliable_indicators.append(candle_stick_indicator)

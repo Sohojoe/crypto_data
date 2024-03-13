@@ -3,7 +3,7 @@ from data_manifest import DataManifest
 import numpy as np
 import pandas as pd
 from streaming_stock_indicators import CandleStickIndicator, StreamingStockIndicators, MovingAverageIndicator, WilliamsFractalsIndicator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from trade import Trade
 from visualize_indicators import VisualizeIndicators
 
@@ -12,6 +12,8 @@ data_manifest = DataManifest('data')
 product = data_manifest.products[0]
 platform = data_manifest.platforms[0]
 begin = data_manifest.start_time
+begin = begin + timedelta(weeks=52)
+end = begin + timedelta(weeks=52)
 # begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
 # data_generator = data_manifest.stream_data_and_window(begin, product, platform, time_period)
 # data_iter = iter(data_generator)
@@ -32,7 +34,8 @@ for time_period in time_periods:
         indicators=[
             MovingAverageIndicator(window_size=window_size, lookback_period=10),
             WilliamsFractalsIndicator(window_size=window_size)
-            ])
+            ],
+        end_time=end)
     data_iter = iter(data_generator)
 
     visualize_indicators = VisualizeIndicators()
