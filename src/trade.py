@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field, fields
+from typing import List
 import pandas as pd
 import numpy as np
+from streaming_stock_indicators import Indicator
+import copy
+
 
 @dataclass
 class Trade:
@@ -12,47 +16,59 @@ class Trade:
     entry_price: float
     actual_entry_price: float
     coins: float
+    open_indicators: List[Indicator]
     close_time: float = field(default=None)
     time_open: float = field(default=None)
     return_percent: float = field(default=None)
     exit_price: float = field(default=None)
     actual_exit_price: float = field(default=None)
+    close_indicators: List[Indicator] = field(default=None)
 
-    def close(self, close_time, exit_price):
+    def close(self, close_time, exit_price, close_indicators: List[Indicator]):
         actual_exit_price = exit_price - (exit_price * self.slippage)
         self.close_time = close_time
         self.exit_price = exit_price
         self.actual_exit_price = actual_exit_price
-        self.return_percent = ((self.actual_exit_price / self.actual_entry_price) - 1.)
+        self.return_percent = (self.actual_exit_price / self.actual_entry_price) - 1.0
         cash = self.coins * self.exit_price
+        self.close_indicators = copy.deepcopy(close_indicators)
         return cash
 
     @staticmethod
-    def open_trade(product, platform, time_period, open_time, slippage, entry_price, cash_to_spend):
+    def open_trade(
+        product,
+        platform,
+        time_period,
+        open_time,
+        slippage,
+        entry_price,
+        cash_to_spend,
+        open_indicators: List[Indicator],
+    ):
         actual_entry_price = entry_price + (entry_price * slippage)
         coins = cash_to_spend / actual_entry_price
         trade = Trade(
-            product = product,
-            platform = platform,
-            time_period = time_period,
-            open_time = open_time,
-            time_open = open_time,
-            slippage = slippage,
-            entry_price = entry_price,
-            actual_entry_price = actual_entry_price,
-            coins = coins,
-            )
+            product=product,
+            platform=platform,
+            time_period=time_period,
+            open_time=open_time,
+            time_open=open_time,
+            slippage=slippage,
+            entry_price=entry_price,
+            actual_entry_price=actual_entry_price,
+            coins=coins,
+            open_indicators=copy.deepcopy(open_indicators),
+        )
         return trade
-    
 
     @staticmethod
     def create_emptpy_dataframe():
         headers = [f.name for f in fields(Trade)]
         df = pd.DataFrame(columns=headers)
         # You don't need to explicitly set types here; it will be inferred upon assignment
-        df.set_index('open_time', inplace=True)
+        df.set_index("open_time", inplace=True)
         return df
-    
+
     def add_row_to_dataframe(self, df):
         # Directly create a dict mapping field names to values
         row_dict = {f.name: getattr(self, f.name) for f in fields(Trade)}

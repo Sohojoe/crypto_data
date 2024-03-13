@@ -1,4 +1,5 @@
 import matplotlib
+from trade import Trade
 matplotlib.use('TkAgg')  # Replace 'TkAgg' with 'Qt5Agg', 'WXAgg', etc.
 from matplotlib import dates as mdates
 import mplfinance as mpf
@@ -65,6 +66,7 @@ class VisualizeIndicators():
 
     def visualize_frame(self, indicators):
         self._render_indicators(indicators)
+        self.fig.canvas.draw()
         plt.show()
 
     def _render_indicators(self, indicators):
@@ -122,7 +124,7 @@ class VisualizeIndicators():
 
         self.ax1.yaxis.label.set_color(self.text_white)
         self.ax2.yaxis.label.set_color(self.text_white)
-        self.fig.canvas.draw()    
+        #self.fig.canvas.draw()    
 
     def visualize_iterator(self, data_iter):
         """
@@ -139,8 +141,57 @@ class VisualizeIndicators():
             #     break            
             # indicators = next(data_iter)
             self._render_indicators(indicators)
+            self.fig.canvas.draw()    
+
 
         ani = FuncAnimation(self.fig, animate, frames=data_iter, interval=50, cache_frame_data=False)
         # animate(0)
         plt.show()
 
+    def visualize_trade(self, trade:Trade):
+        self._render_indicators(trade.close_indicators)
+        candle_stick_indicator = next((indicator for indicator in trade.close_indicators if isinstance(indicator, CandleStickIndicator)), None)
+        # open
+        open_time = trade.open_time
+        open_price = trade.entry_price
+        try:
+            open_idx = np.where(candle_stick_indicator.rows["time"] == open_time)[0][0]
+            # self.ax1.hlines(y=open_price, xmin=xmax_value, xmax=open_idx, colors=self.text_white, linestyles='dashed')
+            # self.ax1.hlines(y=open_price, xmin=open_idx, xmax=self.ax1.get_xlim()[1], colors=self.text_white, linestyles='dashed')
+            idx_fraction = open_idx / len(candle_stick_indicator.rows["time"]) 
+            self.ax1.axhline(
+                y=open_price, 
+                xmin=0,#idx_fraction, 
+                xmax=1, 
+                color=self.text_white, linestyle='dashed')
+            # self.ax1.hlines(y=open_price, xmin=open_idx_fraction, xmax=1, color=self.text_white, linestyle='dashed')
+            self.ax1.annotate(f'Open{open_price}', (open_idx, open_price), color=self.text_white, 
+                xytext=(0, -50),
+                textcoords='offset points',
+                #  zorder=5, 
+                arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color=self.text_white),  # Arrow styling
+                fontsize=14, ha='center', va='top')
+            # close
+        except IndexError:
+            pass
+        close_time = trade.close_time
+        close_price = trade.exit_price
+        close_idx = np.where(candle_stick_indicator.rows["time"] == close_time)[0][0]
+        self.ax1.annotate('Close', (close_idx, close_price), color=self.text_white, 
+                    xytext=(0, 10),
+                    textcoords='offset points',
+                    #  zorder=5, 
+                    fontsize=14, ha='center')
+        # show p&l in top left so should be in screen position
+        p_and_l = trade.return_percent * 100
+        self.ax1.annotate(f'p&l:{p_and_l:.2f}%', (.0, .95), color=self.text_white, 
+                    xycoords='axes fraction',
+                    # xycoords='figure fraction',
+                    # xycoords='subfigure fraction',
+                    xytext=(00, 0),
+                    textcoords='offset points',
+                    #  zorder=5, 
+                    fontsize=14, ha='left', va='center')
+        self.fig.canvas.draw()    
+
+        plt.show()

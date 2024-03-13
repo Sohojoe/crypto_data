@@ -58,21 +58,33 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
         close = candle_stick_indicator.rows['close'][-1]
         low = candle_stick_indicator.rows['open'][-1] # use open so we can see on charts
         first_open = first_open if first_open else open
-        if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
+        if williams_fractals_indicator.rows["higher_fractal"][-3] > 0:
             higher_count += 1
-            higher_value = candle_stick_indicator.rows['high'][-3]
-        if (williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
+            higher_value = candle_stick_indicator.rows["high"][-3]
+        if williams_fractals_indicator.rows["lower_fractal"][-3] > 0:
             lower_count += 1
-            lower_value = candle_stick_indicator.rows['low'][-3]
+            lower_value = candle_stick_indicator.rows["low"][-3]
         if higher_value and cash and open > higher_value:
-            trade = Trade.open_trade(product, platform, time_period, candle_stick_indicator.cur_step['time'], slippage, open, cash)
+            trade = Trade.open_trade(
+                product,
+                platform,
+                time_period,
+                candle_stick_indicator.cur_step["time"],
+                slippage,
+                open,
+                cash,
+                indicators,
+            )
             cash = 0
             coins += trade.coins
             higher_value = None
             open_trades.append(trade)
         if lower_value and coins and open < lower_value:
             for trade in open_trades.copy():
-                cash += trade.close(candle_stick_indicator.cur_step['time'], open)
+                cash += trade.close(
+                    candle_stick_indicator.cur_step["time"],
+                    open,
+                    indicators)
                 coins -= trade.coins
                 open_trades.remove(trade)
                 closed_trades.append(trade)
@@ -89,12 +101,11 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
         #     # visualize_indicators.visualize_frame(indicators)
         #     lower_value = None
 
-
     print("----------------------")
     print(f"product: {product}, platform: {platform}, time_period: {time_period}, slippage: {slippage}")
 
     for trade in open_trades.copy():
-        cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value)
+        cash += trade.close(candle_stick_indicator.cur_step["time"], lower_value, indicators)
         open_trades.remove(trade)
         closed_trades.append(trade)
 
@@ -102,13 +113,12 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
         trade.add_row_to_dataframe(df)
     # print dataframe as csv
     # print(df.to_csv())
-        
 
     total_return = cash
-    total_return_percent = (total_return/start_cash)-1.
+    total_return_percent = (total_return / start_cash) - 1.0
     # print(f"total return: {total_return_percent:.2f}%")
     buy_and_hold_return = (start_cash / first_open) * close
-    buy_and_hold_return_percent = (close/first_open)-1.
+    buy_and_hold_return_percent = (close / first_open) - 1.0
     # print(f"hodl return: {buy_and_hold_return_percent:.2f}%")
     # print(f"strategy is {total_return_percent/buy_and_hold_return_percent:.2f} * better/worse than hodl")
 
@@ -155,11 +165,8 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
     
     return results
 
-
     # visualize_indicators = VisualizeIndicators()
     # visualize_indicators.visualize_frame(indicators)
-
-
 
     # visualize_indicators.visualize_iterator(data_iter)
 
@@ -178,7 +185,7 @@ begin = data_manifest.start_time
 # data_iter = iter(data_generator)
 
 # time_periods = ['1D', '6H', '1H', '15T', '1T']
-time_periods = ['1D', '6H', '1H', '15T']
+time_periods = ["1D", "6H", "1H", "15T"]
 all_results = []
 slippages = [0, 0.005, 0.01]
 for time_period in time_periods:

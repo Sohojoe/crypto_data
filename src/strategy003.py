@@ -13,7 +13,7 @@ from visualize_indicators import VisualizeIndicators
 #     print(window)
 #     print('---')
 
-def run_experiment(product, platform, time_period, begin, data_manifest, slippage, end_time=None):
+def run_experiment(product, platform, time_period, begin, data_manifest, slippage, end_time=None, plot_trade=False):
     window_size = 100
     streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=window_size)
     data_generator = streaming_stock_indicators.stream_data_and_window(
@@ -67,7 +67,16 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
             lower_count += 1
             lower_value = candle_stick_indicator.rows['low'][-3]
         if higher_value and cash and high > higher_value:
-            trade = Trade.open_trade(product, platform, time_period, candle_stick_indicator.cur_step['time'], slippage, higher_value, cash)
+            trade = Trade.open_trade(
+                product,
+                platform,
+                time_period,
+                candle_stick_indicator.cur_step["time"],
+                slippage,
+                open,
+                cash,
+                indicators,
+            )
             cash = 0
             coins += trade.coins
             higher_value = None
@@ -80,7 +89,10 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
             # visualize_indicators.visualize_frame(indicators)
         if lower_value and coins and low < lower_value:
             for trade in open_trades.copy():
-                cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value)
+                cash += trade.close(
+                    candle_stick_indicator.cur_step["time"],
+                    open,
+                    indicators)
                 coins -= trade.coins
                 open_trades.remove(trade)
                 closed_trades.append(trade)
@@ -92,7 +104,7 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
     print(f"product: {product}, platform: {platform}, time_period: {time_period}, slippage: {slippage}")
 
     for trade in open_trades.copy():
-        cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value)
+        cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value, indicators)
         open_trades.remove(trade)
         closed_trades.append(trade)
 
@@ -153,6 +165,12 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
         "platform": platform,
         }
     
+    if plot_trade or True:
+        for trade in closed_trades:
+            visualize_indicators = VisualizeIndicators()
+            visualize_indicators.visualize_trade(trade)
+            
+    
     return results
 
 
@@ -202,19 +220,29 @@ if True:
         # April 20 2024
         # (datetime(2009, 1, 3), datetime(2012, 11, 28)),
         # (datetime(2012, 11, 28), datetime(2016, 7, 9)),
-        (datetime(2016, 7, 9), datetime(2020, 5, 11)),
-        (datetime(2020, 5, 11), datetime(2024, 4, 20)),
-        (datetime(2024, 4, 20), datetime(2028, 1, 1)),
-        # years
-        (datetime(2016, 1, 1), datetime(2017, 12, 31)),
-        (datetime(2017, 1, 1), datetime(2018, 12, 31)),
-        (datetime(2018, 1, 1), datetime(2019, 12, 31)),
-        (datetime(2019, 1, 1), datetime(2020, 12, 31)),
-        (datetime(2020, 1, 1), datetime(2021, 12, 31)),
-        (datetime(2021, 1, 1), datetime(2022, 12, 31)),
-        (datetime(2022, 1, 1), datetime(2023, 12, 31)),
-        (datetime(2023, 1, 1), datetime(2024, 12, 31)),
-        (datetime(2024, 1, 1), datetime(2025, 12, 31)),
+        # (datetime(2016, 7, 9), datetime(2020, 5, 11)),
+        # (datetime(2020, 5, 11), datetime(2024, 4, 20)),
+        # (datetime(2024, 4, 20), datetime(2028, 1, 1)),
+        # # years
+        # (datetime(2016, 1, 1), datetime(2017, 12, 31)),
+        # (datetime(2017, 1, 1), datetime(2018, 12, 31)),
+        # (datetime(2018, 1, 1), datetime(2019, 12, 31)),
+        # (datetime(2019, 1, 1), datetime(2020, 12, 31)),
+        # (datetime(2020, 1, 1), datetime(2021, 12, 31)),
+        # (datetime(2021, 1, 1), datetime(2022, 12, 31)),
+        # (datetime(2022, 1, 1), datetime(2023, 12, 31)),
+        # (datetime(2023, 1, 1), datetime(2024, 12, 31)),
+        # (datetime(2024, 1, 1), datetime(2025, 12, 31)),
+        # 4 year periouds
+        (datetime(2016, 1, 1), datetime(2020, 12, 31)),
+        (datetime(2017, 1, 1), datetime(2021, 12, 31)),
+        (datetime(2018, 1, 1), datetime(2022, 12, 31)),
+        (datetime(2019, 1, 1), datetime(2023, 12, 31)),
+        (datetime(2020, 1, 1), datetime(2024, 12, 31)),
+        (datetime(2021, 1, 1), datetime(2025, 12, 31)),
+        (datetime(2022, 1, 1), datetime(2026, 12, 31)),
+        (datetime(2023, 1, 1), datetime(2027, 12, 31)),
+        (datetime(2024, 1, 1), datetime(2028, 12, 31)),
     ]
     all_results = []
 

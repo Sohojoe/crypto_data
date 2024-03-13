@@ -65,7 +65,16 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
             lower_count += 1
             lower_value = candle_stick_indicator.rows['low'][-3]
         if higher_value and cash and open > higher_value:
-            trade = Trade.open_trade(product, platform, time_period, candle_stick_indicator.cur_step['time'], slippage, open, cash)
+            trade = Trade.open_trade(
+                product,
+                platform,
+                time_period,
+                candle_stick_indicator.cur_step["time"],
+                slippage,
+                open,
+                cash,
+                indicators,
+            )
             cash = 0
             coins += trade.coins
             higher_value = None
@@ -82,7 +91,10 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
         #     lower_value = None
         if lower_value and coins and low < lower_value:
             for trade in open_trades.copy():
-                cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value)
+                cash += trade.close(
+                    candle_stick_indicator.cur_step["time"],
+                    open,
+                    indicators)
                 coins -= trade.coins
                 open_trades.remove(trade)
                 closed_trades.append(trade)
@@ -95,7 +107,7 @@ def run_experiment(product, platform, time_period, begin, data_manifest, slippag
     print(f"product: {product}, platform: {platform}, time_period: {time_period}, slippage: {slippage}")
 
     for trade in open_trades.copy():
-        cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value)
+        cash += trade.close(candle_stick_indicator.cur_step['time'], lower_value, indicators)
         open_trades.remove(trade)
         closed_trades.append(trade)
 
