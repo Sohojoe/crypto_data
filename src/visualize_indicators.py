@@ -20,6 +20,15 @@ class VisualizeIndicators():
         self.down_volume_color = '#783A3B'
         self.text_white = '#D4D6DD'
         self.line_color = '#2A2E38'
+        self.soft_green_color = '#a5d6a7'
+        self.soft_red_color = '#faa1a4'
+        self.soft_yellow_color = '#fff59d'
+        self.soft_orange_color = '#ffcc80'
+        self.soft_blue_color = '#90bff9'
+        self.soft_pink_color = '#f48fb1'
+        self.soft_purple_color = '#ce93d8'
+        
+        #self.soft_ = '#xxxxxx'
         # Additional settings can be added as needed
         my_style = {'candle'  : {'up':self.up_candle_color, 'down':self.down_candle_color},
             'edge'    : {'up':self.up_candle_color, 'down':self.down_candle_color},
@@ -154,6 +163,7 @@ class VisualizeIndicators():
         # open
         open_time = trade.open_time
         open_price = trade.entry_price
+        print(trade)
         try:
             open_idx = np.where(candle_stick_indicator.rows["time"] == open_time)[0][0]
             # self.ax1.hlines(y=open_price, xmin=xmax_value, xmax=open_idx, colors=self.text_white, linestyles='dashed')
@@ -163,13 +173,12 @@ class VisualizeIndicators():
                 y=open_price, 
                 xmin=0,#idx_fraction, 
                 xmax=1, 
-                color=self.text_white, linestyle='dashed')
+                color=self.soft_yellow_color, alpha=0.5, linestyle='dashed')
             # self.ax1.hlines(y=open_price, xmin=open_idx_fraction, xmax=1, color=self.text_white, linestyle='dashed')
-            self.ax1.annotate(f'Open{open_price}', (open_idx, open_price), color=self.text_white, 
+            self.ax1.annotate(f'Open\n{open_price}', (open_idx, open_price), color=self.soft_yellow_color, 
                 xytext=(0, -50),
                 textcoords='offset points',
-                #  zorder=5, 
-                arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color=self.text_white),  # Arrow styling
+                arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color=self.soft_yellow_color),  # Arrow styling
                 fontsize=14, ha='center', va='top')
             # close
         except IndexError:
@@ -177,11 +186,17 @@ class VisualizeIndicators():
         close_time = trade.close_time
         close_price = trade.exit_price
         close_idx = np.where(candle_stick_indicator.rows["time"] == close_time)[0][0]
-        self.ax1.annotate('Close', (close_idx, close_price), color=self.text_white, 
-                    xytext=(0, 10),
-                    textcoords='offset points',
-                    #  zorder=5, 
-                    fontsize=14, ha='center')
+        close_color = self.soft_green_color if trade.return_percent > 0 else self.soft_red_color
+        self.ax1.axhline(
+            y=close_price, 
+            xmin=0,#idx_fraction, 
+            xmax=1, 
+            color=close_color, alpha=0.5, linestyle='dashed')
+        self.ax1.annotate(f'Close\n{close_price}', (close_idx, close_price), color=close_color, 
+            xytext=(0, 50),
+            textcoords='offset points',
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color=close_color),  # Arrow styling
+            fontsize=14, ha='center', va='top')
         # show p&l in top left so should be in screen position
         p_and_l = trade.return_percent * 100
         self.ax1.annotate(f'p&l:{p_and_l:.2f}%', (.0, .95), color=self.text_white, 
