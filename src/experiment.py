@@ -105,6 +105,8 @@ class Experiment():
             # "roi": total_return_percent,
             # "hold_roi": buy_and_hold_return_percent,
             # "vs_hodl": total_return_percent/buy_and_hold_return_percent,
+            "buy_strategy": self.buy_strategy.__name__,
+            "sell_strategy": self.sell_strategy.__name__,
             "expected_return": expected_return * 100.,
             "std_dev_returns": std_dev_returns * 100.,
             "prob_profit": prob_profit * 100.,
