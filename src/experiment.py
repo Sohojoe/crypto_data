@@ -75,9 +75,9 @@ class Experiment():
         open_trades = [trade for trade in open_trades if trade not in new_closed_trades]
 
         return_percentages = [x.return_percent for x in closed_trades]
-        average_return = np.mean(return_percentages)
-        prob_profit = (len([x for x in return_percentages if x > 0]) / len(return_percentages))*100.
-        prob_loss = (len([x for x in return_percentages if x < 0]) / len(return_percentages))*100.
+        expected_return = np.mean(return_percentages)
+        prob_profit = (len([x for x in return_percentages if x > 0]) / len(return_percentages))
+        prob_loss = (len([x for x in return_percentages if x < 0]) / len(return_percentages))
         avg_win = np.mean([x for x in return_percentages if x > 0])
         avg_loss = np.mean([x for x in return_percentages if x < 0])
         # Calculate Profit Factor
@@ -86,9 +86,9 @@ class Experiment():
         profit_factor = sum(winning_trades) / abs(sum(losing_trades))
 
         # Calculate Expectancy
-        win_rate = len(winning_trades) / len(return_percentages)
-        loss_rate = len(losing_trades) / len(return_percentages)
-        expectancy = (win_rate * avg_win) - (loss_rate * abs(avg_loss))
+        # win_rate = len(winning_trades) / len(return_percentages)
+        # loss_rate = len(losing_trades) / len(return_percentages)
+        # expectancy = (win_rate * avg_win) - (loss_rate * abs(avg_loss))
 
         # Calculate Median Return
         median_return = np.median(return_percentages)
@@ -97,25 +97,23 @@ class Experiment():
         std_dev_returns = np.std(return_percentages)
 
         # Calculate Win/Loss Ratio
-        win_loss_ratio = len(winning_trades) / len(losing_trades)        
+        # win_loss_ratio = len(winning_trades) / len(losing_trades)        
 
         self.results = {
             # "roi": total_return_percent,
             # "hold_roi": buy_and_hold_return_percent,
             # "vs_hodl": total_return_percent/buy_and_hold_return_percent,
+            "expected_return": expected_return * 100.,
+            "std_dev_returns": std_dev_returns * 100.,
+            "prob_profit": prob_profit * 100.,
             "trades": len(closed_trades),
             "winning": len([x.return_percent for x in closed_trades if x.return_percent > 0]),
             "loosing": len([x.return_percent for x in closed_trades if x.return_percent < 0]),
-            "ave_return": average_return,
+            "median_return": median_return * 100.,
             "profit_factor": profit_factor,
-            "expectancy": expectancy,
-            "median_return": median_return,
-            "std_dev_returns": std_dev_returns,
-            "win_loss_ratio": win_loss_ratio,
-            "prob_profit": prob_profit,
-            "prob_loss": prob_loss,
-            "avg_win": avg_win,
-            "avg_loss": avg_loss,
+            # "prob_loss": prob_loss * 100.,
+            "avg_win": avg_win * 100.,
+            "avg_loss": avg_loss * 100.,
             "time_period": self.time_period,
             "slippage": self.slippage,
             "product": self.product,

@@ -13,7 +13,7 @@ platform = data_manifest.platforms[0]
 time_period="1D"
 begin = data_manifest.start_time
 slippage = 0.01
-begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
+# begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
 
 indicators=[
             # MovingAverageIndicator(window_size=window_size, lookback_period=10),
@@ -27,20 +27,23 @@ def wf_buy_on_cross_strategy(indicators: List[Indicator])->List[Trade]:
     open = candle_stick_indicator.cur_step['open']
     close = candle_stick_indicator.cur_step['close']
     high = candle_stick_indicator.cur_step['high'] 
-    low = candle_stick_indicator.cur_step['open']
+    low = candle_stick_indicator.cur_step['low']
+    time = candle_stick_indicator.cur_step["time"]
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
     if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
         strategy_state["higher_value"] = candle_stick_indicator.rows['high'][-3]
     if (williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
         strategy_state["lower_value"] = candle_stick_indicator.rows['low'][-3]
+    higher_value = strategy_state["higher_value"]
     open_trades: List[Trade] = []    
-    if strategy_state["higher_value"]  and high > strategy_state["higher_value"]:
+    if higher_value and high > higher_value:
         trade = Trade.open_trade(
             product=product,
             platform=platform,
             time_period=time_period,
             open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
-            entry_price=strategy_state["higher_value"],
+            entry_price=higher_value,
             cash_to_spend=1,
             open_indicators=indicators,
         )
@@ -56,13 +59,16 @@ def wf_sell_on_cross_strategy(indicators: List[Indicator], open_trades: List[Tra
     open = candle_stick_indicator.cur_step['open']
     close = candle_stick_indicator.cur_step['close']
     high = candle_stick_indicator.cur_step['high'] 
-    low = candle_stick_indicator.cur_step['open']
+    low = candle_stick_indicator.cur_step['low']
+    time = candle_stick_indicator.cur_step["time"]
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
+    lower_value = strategy_state["lower_value"]
     closed_trades = []
-    if (strategy_state["lower_value"] and low < strategy_state["lower_value"]) or force_close:
+    if (lower_value and low < lower_value) or force_close:
         for trade in open_trades:
             trade.close(
-                candle_stick_indicator.cur_step["time"],
-                strategy_state["lower_value"],
+                time,
+                lower_value,
                 indicators)
             closed_trades.append(trade)
         # note: we do not set lower_value to None as we want it as our stop loss

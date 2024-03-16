@@ -8,7 +8,7 @@ from matplotlib.animation import FuncAnimation
 from streaming_stock_indicators import CandleStickIndicator, StreamingStockIndicators, MovingAverageIndicator, WilliamsFractalsIndicator
 import pandas as pd
 import numpy as np
-
+from datetime import datetime, timezone
 
 class VisualizeIndicators():
     def __init__(self):
