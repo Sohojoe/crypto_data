@@ -45,7 +45,16 @@ class Experiment():
 
     def __str__(self):
         if self.results is None:
-            return f"product: {self.product}, platform: {self.platform}, time_period: {self.time_period}, slippage: {self.slippage}"
+            buy_strategy_name = self.buy_strategy.__name__.replace('_strategy', '')
+            sell_strategy_name = self.sell_strategy.__name__.replace('_strategy', '')
+            return (
+                f"{buy_strategy_name} - {sell_strategy_name}, "
+                f"{self.product}, "
+                f"{self.platform}, "
+                f"{self.time_period}, "
+                f"{self.begin.date()}"
+                f"{' to ' + str(self.end_time.date()) if self.end_time is not None else ''}"
+            )
         else:
             df = pd.DataFrame([self.results])
             pd.options.display.float_format = '{:,.3f}'.format
@@ -105,8 +114,8 @@ class Experiment():
             # "roi": total_return_percent,
             # "hold_roi": buy_and_hold_return_percent,
             # "vs_hodl": total_return_percent/buy_and_hold_return_percent,
-            "buy_strategy": self.buy_strategy.__name__,
-            "sell_strategy": self.sell_strategy.__name__,
+            "buy_strategy": self.buy_strategy.__name__.replace('_strategy', ''),
+            "sell_strategy": self.sell_strategy.__name__.replace('_strategy', ''),
             "expected_return": expected_return * 100.,
             "std_dev_returns": std_dev_returns * 100.,
             "prob_profit": prob_profit * 100.,
