@@ -19,6 +19,7 @@ class Experiment():
             sell_strategy,
             slippage, 
             window_size = 100,
+            strategy_state = {},
             end_time=None):
         self.product = product
         self.platform = platform
@@ -28,6 +29,7 @@ class Experiment():
         self.buy_strategy = buy_strategy
         self.sell_strategy = sell_strategy
         self.slippage = slippage
+        self.strategy_state = strategy_state
         self.end_time = end_time
         self.results = None
 
@@ -63,14 +65,14 @@ class Experiment():
             except StopIteration:
                 break
         
-            new_open_trades = self.buy_strategy(indicators)
+            new_open_trades = self.buy_strategy(self.strategy_state, indicators)
             open_trades.extend(new_open_trades)
-            new_closed_trades = self.sell_strategy(indicators, open_trades)
+            new_closed_trades = self.sell_strategy(self.strategy_state, indicators, open_trades)
             closed_trades.extend(new_closed_trades)
             open_trades = [trade for trade in open_trades if trade not in new_closed_trades]
 
         # close any open trades        
-        new_closed_trades = self.sell_strategy(indicators, open_trades, force_close=True)
+        new_closed_trades = self.sell_strategy(self.strategy_state, indicators, open_trades, force_close=True)
         closed_trades.extend(new_closed_trades)
         open_trades = [trade for trade in open_trades if trade not in new_closed_trades]
 

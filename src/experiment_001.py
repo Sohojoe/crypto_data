@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, Dict, List
 from data_manifest import DataManifest
 from experiment import Experiment
 from streaming_stock_indicators import CandleStickIndicator, Indicator, WilliamsFractalsIndicator
@@ -20,8 +20,10 @@ indicators=[
             WilliamsFractalsIndicator(window_size=window_size)
             ]
 
-def wf_buy_on_cross_strategy(indicators: List[Indicator])->List[Trade]:
-    global strategy_state
+def wf_buy_on_cross_strategy(
+        strategy_state: Dict[str, Any], 
+        indicators: List[Indicator]
+        )->List[Trade]:
     candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
     williams_fractals_indicator = next((indicator for indicator in indicators if isinstance(indicator, WilliamsFractalsIndicator)), None)
     open = candle_stick_indicator.cur_step['open']
@@ -52,8 +54,12 @@ def wf_buy_on_cross_strategy(indicators: List[Indicator])->List[Trade]:
         strategy_state["higher_value"] = None
     return open_trades
 
-def wf_sell_on_cross_strategy(indicators: List[Indicator], open_trades: List[Trade], force_close :bool = False)->List[Trade]:
-    global strategy_state
+def wf_sell_on_cross_strategy(
+        strategy_state: Dict[str, Any], 
+        indicators: List[Indicator], 
+        open_trades: List[Trade], 
+        force_close :bool = False
+        )->List[Trade]:
     candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
     williams_fractals_indicator = next((indicator for indicator in indicators if isinstance(indicator, WilliamsFractalsIndicator)), None)
     open = candle_stick_indicator.cur_step['open']
@@ -90,6 +96,7 @@ experment = Experiment(
     sell_strategy=wf_sell_on_cross_strategy,
     slippage=slippage,
     window_size=window_size,
+    strategy_state=strategy_state,
     end_time=None)
 
 print(experment)
