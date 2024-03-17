@@ -91,8 +91,8 @@ def fetch_time_period_in_year_chunks(start_time: datetime, end_time: datetime, p
 
 # one minute, five minutes, fifteen minutes, one hour, six hours, and one day
 
-time_periods = ['1T', '5T', '15T', '1H', '6H','1D']
-# time_periods = ['1D']
+# time_periods = ['1T', '5T', '15T', '1H', '6H','1D']
+time_periods = ['5T', '15T', '1H', '4H', '6H', '8H', '12H', '1D']
 product_id:str = "BTC-USD"
 for time_period in time_periods:
     data_manifest = DataManifest('data')
