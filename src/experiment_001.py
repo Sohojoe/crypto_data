@@ -4,7 +4,7 @@ from data_manifest import DataManifest
 from experiment import Experiment
 import pandas as pd
 from policy import Policy
-from strategies import wf_buy_on_open_strategy, wf_sell_on_open_strategy
+from strategies import wf_buy_every_cross_strategy, wf_buy_every_open_strategy, wf_buy_on_cross_strategy, wf_buy_on_open_strategy, wf_sell_on_cross_strategy, wf_sell_on_open_strategy
 from streaming_stock_indicators import CandleStickIndicator, Indicator, WilliamsFractalsIndicator
 from trade import Trade
 
@@ -27,14 +27,14 @@ def create_indicators(window_size: int):
 
 buy_strategies = [
     wf_buy_on_open_strategy,
-    # wf_buy_on_cross_strategy,
-    # wf_buy_every_open_strategy,
-    # wf_buy_every_cross_strategy,
+    wf_buy_on_cross_strategy,
+    wf_buy_every_open_strategy,
+    wf_buy_every_cross_strategy,
 ]
 
 sell_strategies = [
     wf_sell_on_open_strategy,
-    # wf_sell_on_cross_strategy,
+    wf_sell_on_cross_strategy,
 ]
 
 start_times_to_test = [
@@ -50,16 +50,16 @@ start_times_to_test = [
 ]
 
 time_periods=[
-    "6H",
-    "12H",
+    # "6H",
+    # "12H",
     "1D",
-    "36H",
+    # "36H",
     "2D",
     "3D",
     "4D",
-    "5D",
-    "6D",
-    "7D",
+    # "5D",
+    # "6D",
+    # "7D",
 ]
 
 

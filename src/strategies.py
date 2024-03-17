@@ -42,7 +42,78 @@ def wf_sell_on_open_strategy(self: Policy):
             pass
         
 
-# def wf_buy_on_cross_strategy(
+def wf_buy_on_cross_strategy(self: Policy):
+    open = self.candle_stick_indicator.cur_step['open']
+    close = self.candle_stick_indicator.cur_step['close']
+    high = self.candle_stick_indicator.cur_step['high'] 
+    low = self.candle_stick_indicator.cur_step['low']
+    time = self.candle_stick_indicator.cur_step["time"]
+    if not hasattr(self, 'higher_value'):
+        self.higher_value = None
+        self.lower_value = None
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
+    if (self.williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
+        self.higher_value = self.candle_stick_indicator.rows['high'][-3]
+    if (self.williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
+        self.lower_value = self.candle_stick_indicator.rows['low'][-3]
+    if self.higher_value and high > self.higher_value and self.cash:
+        if self.open_trade(entry_price=self.higher_value, cash_to_spend=self.cash):
+            # note: buy signal is removed if we buy
+            self.higher_value = None
+
+def wf_sell_on_cross_strategy(self: Policy):
+    open = self.candle_stick_indicator.cur_step['open']
+    close = self.candle_stick_indicator.cur_step['close']
+    high = self.candle_stick_indicator.cur_step['high'] 
+    low = self.candle_stick_indicator.cur_step['low']
+    time = self.candle_stick_indicator.cur_step["time"]
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
+    if (self.lower_value and low < self.lower_value):
+        num_closed = self.close_all_trades(exit_price=self.lower_value)
+        if num_closed:
+            # note: we do not set lower_value to None as we want it as our stop loss
+            # strategy_state["lower_value"] = None
+            pass
+
+def wf_buy_every_open_strategy(self: Policy):
+    open = self.candle_stick_indicator.cur_step['open']
+    close = self.candle_stick_indicator.cur_step['close']
+    high = self.candle_stick_indicator.cur_step['high'] 
+    low = self.candle_stick_indicator.cur_step['low']
+    time = self.candle_stick_indicator.cur_step["time"]
+    if not hasattr(self, 'higher_value'):
+        self.higher_value = None
+        self.lower_value = None
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
+    if (self.williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
+        self.higher_value = self.candle_stick_indicator.rows['high'][-3]
+    if (self.williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
+        self.lower_value = self.candle_stick_indicator.rows['low'][-3]
+    if self.higher_value and open > self.higher_value and self.cash:
+        if self.open_trade(entry_price=open, cash_to_spend=self.cash):
+            # note: do not remove the buy signal so we buy many times
+            # strategy_state["higher_value"] = None
+            pass
+
+def wf_buy_every_cross_strategy(self: Policy):
+    open = self.candle_stick_indicator.cur_step['open']
+    close = self.candle_stick_indicator.cur_step['close']
+    high = self.candle_stick_indicator.cur_step['high'] 
+    low = self.candle_stick_indicator.cur_step['low']
+    time = self.candle_stick_indicator.cur_step["time"]
+    if not hasattr(self, 'higher_value'):
+        self.higher_value = None
+        self.lower_value = None
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
+    if (self.williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
+        self.higher_value = self.candle_stick_indicator.rows['high'][-3]
+    if (self.williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
+        self.lower_value = self.candle_stick_indicator.rows['low'][-3]
+    if self.higher_value and high > self.higher_value and self.cash:
+        if self.open_trade(entry_price=self.higher_value, cash_to_spend=self.cash):
+            # note: do not remove the buy signal so we buy many times
+            # strategy_state["higher_value"] = None
+            pass
 #         strategy_state: Dict[str, Any], 
 #         indicators: List[Indicator]
 #         )->List[Trade]:
