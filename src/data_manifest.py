@@ -110,27 +110,56 @@ class DataManifest:
                         self._data_structure[product][platform][time_period].append(file.name)
         return self._data_structure
 
+    def _find_supported_period(self, requested_period, supported_periods):
+        # Time period to seconds mapping
+        period_to_seconds = {
+            'T': 60,
+            'H': 3600,
+            'D': 86400,
+            'W': 604800,
+            # 'M': 2628000,  # Approximate
+            # 'Y': 31536000, # Approximate
+        }
+        
+        # Convert requested period to seconds
+        requested_seconds = int(requested_period[:-1]) * period_to_seconds[requested_period[-1]]
+        
+        # Convert supported periods to seconds
+        supported_seconds = [int(period[:-1]) * period_to_seconds[period[-1]] for period in supported_periods]
+        
+        # Sort supported_seconds and find the closest lower or equal supported period
+        supported_seconds.sort()
+        closest_supported = None
+        for supported in supported_seconds:
+            if supported <= requested_seconds:
+                closest_supported = supported
+            else:
+                break
+        
+        # If no lower or equal period is supported, return the smallest available period
+        if closest_supported is None:
+            closest_supported = supported_seconds[0]
+            num_periods_to_merge = 1
+        else:
+            # Calculate how many periods need to be merged to match the requested period as closely as possible
+            num_periods_to_merge = round(requested_seconds / closest_supported)
+            
+        # Find the supported time period string
+        for period in supported_periods:
+            if int(period[:-1]) * period_to_seconds[period[-1]] == closest_supported:
+                supported_time_period = period
+                break
+                
+        return supported_time_period, num_periods_to_merge
 
 
-
-    def stream_data(self,
+    def _stream_data(self,
                 start_time,
                 product, 
                 platform, 
                 time_period,
                 end_time = None):
-        # Validate Inputs
-        if end_time is not None and end_time < start_time:
-            raise ValueError(f"End time '{end_time}' is before start time '{start_time}'.")
 
-        # Validate inputs against manifest and throw exceptions
-        if product not in self._data_structure:
-            raise ProductNotFoundError(product)
-        if platform not in self._data_structure[product]:
-            raise PlatformNotFoundError(platform)
-        if time_period not in self._data_structure[product][platform]:
-            raise TimePeriodNotFoundError(time_period)
-        
         rows_yielded = 0
         files = self._data_structure[product][platform][time_period]
 
@@ -151,3 +180,44 @@ class DataManifest:
         if rows_yielded == 0:
             raise StartTimeNotInWindowError(start_time)        
 
+    def stream_data(self,
+                start_time,
+                product, 
+                platform, 
+                time_period,
+                end_time = None):
+
+        # Validate Inputs
+        if end_time is not None and end_time < start_time:
+            raise ValueError(f"End time '{end_time}' is before start time '{start_time}'.")
+
+        # Validate inputs against manifest and throw exceptions
+        if product not in self._data_structure:
+            raise ProductNotFoundError(product)
+        if platform not in self._data_structure[product]:
+            raise PlatformNotFoundError(platform)
+        if time_period in self._data_structure[product][platform]:
+            yield from self._stream_data(start_time, product, platform, time_period, end_time)
+            return
+
+        try:
+            supported_time_period, num_periods_to_merge = self._find_supported_period(time_period, self._data_structure[product][platform].keys())
+        except Exception as e:
+            print(e)
+            raise TimePeriodNotFoundError(time_period)
+        
+        periods = []
+        for row in self._stream_data(start_time, product, platform, supported_time_period, end_time):
+            periods.append(row)
+            if len(periods) <= num_periods_to_merge:
+                continue
+            merged_row = {
+                'Time': periods[0]['Time'],
+                'Low': min(float(period['Low']) for period in periods),
+                'High': max(float(period['High']) for period in periods),
+                'Open': periods[0]['Open'],
+                'Close': periods[-1]['Close'],
+                'Volume': sum(float(period['Volume']) for period in periods)
+            }
+            yield merged_row
+            periods = []
