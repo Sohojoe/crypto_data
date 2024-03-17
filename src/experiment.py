@@ -32,6 +32,8 @@ class Experiment():
         self.strategy_state = strategy_state
         self.end_time = end_time
         self.results = None
+        if "cash" in self.strategy_state:
+            self.start_cash = self.strategy_state["cash"]
 
         streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=window_size)
         data_generator = streaming_stock_indicators.stream_data_and_window(
@@ -114,19 +116,19 @@ class Experiment():
             # "roi": total_return_percent,
             # "hold_roi": buy_and_hold_return_percent,
             # "vs_hodl": total_return_percent/buy_and_hold_return_percent,
-            "buy_strategy": self.buy_strategy.__name__.replace('_strategy', ''),
-            "sell_strategy": self.sell_strategy.__name__.replace('_strategy', ''),
-            "expected_return": expected_return * 100.,
-            "std_dev_returns": std_dev_returns * 100.,
+            "buy_strat": self.buy_strategy.__name__.replace('_strategy', ''),
+            "sell_strat": self.sell_strategy.__name__.replace('_strategy', ''),
+            "expected_ret": expected_return * 100.,
+            "std_dev": std_dev_returns * 100.,
             "prob_profit": prob_profit * 100.,
             "trades": len(closed_trades),
             "winning": len([x.return_percent for x in closed_trades if x.return_percent > 0]),
             "loosing": len([x.return_percent for x in closed_trades if x.return_percent < 0]),
-            "median_return": median_return * 100.,
-            "profit_factor": profit_factor,
+            "median_ret": median_return * 100.,
+            # "profit_factor": profit_factor,
             # "prob_loss": prob_loss * 100.,
-            "avg_win": avg_win * 100.,
-            "avg_loss": avg_loss * 100.,
+            # "avg_win": avg_win * 100.,
+            # "avg_loss": avg_loss * 100.,
             "time_period": self.time_period,
             "slippage": self.slippage,
             "product": self.product,
@@ -135,11 +137,18 @@ class Experiment():
             }
         if self.end_time is not None:
             self.results['end_time'] = self.end_time.date()
+        if "cash" in self.strategy_state:
+            roi = ((self.strategy_state["cash"] / self.start_cash) - 1.0)*100.
+            self.results = {**{"roi": roi}, **self.results}
+            self.results["start_cash"] = self.start_cash
+            self.results["end_cash"] = self.strategy_state["cash"]
         
         self.closed_trades = closed_trades
         return self.results
     
-    def plot(self):
+    def plot(self, should_plot = None):
         for trade in self.closed_trades:
+            if should_plot and not should_plot(trade):
+                continue
             visualize_indicators = VisualizeIndicators()
             visualize_indicators.visualize_trade(trade)

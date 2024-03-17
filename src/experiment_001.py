@@ -33,6 +33,7 @@ def wf_buy_on_open_strategy(
     high = candle_stick_indicator.cur_step['high'] 
     low = candle_stick_indicator.cur_step['low']
     time = candle_stick_indicator.cur_step["time"]
+    cash = strategy_state.get("cash", 1)
     # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
     if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
         strategy_state["higher_value"] = candle_stick_indicator.rows['high'][-3]
@@ -40,7 +41,7 @@ def wf_buy_on_open_strategy(
         strategy_state["lower_value"] = candle_stick_indicator.rows['low'][-3]
     higher_value = strategy_state["higher_value"]
     open_trades: List[Trade] = []    
-    if higher_value and open > higher_value:
+    if higher_value and open > higher_value and cash:
         trade = Trade.open_trade(
             product=product,
             platform=platform,
@@ -48,12 +49,14 @@ def wf_buy_on_open_strategy(
             open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=open,
-            cash_to_spend=1,
+            cash_to_spend=cash,
             open_indicators=indicators,
         )
         open_trades.append(trade)
         # note: buy signal is removed if we buy
         strategy_state["higher_value"] = None
+        if "cash" in strategy_state:
+            strategy_state["cash"] = 0
     return open_trades
 
 
@@ -74,14 +77,17 @@ def wf_sell_on_open_strategy(
     lower_value = strategy_state["lower_value"]
     closed_trades = []
     if (lower_value and open < lower_value) or force_close:
+        cash = strategy_state.get("cash", 0)
         for trade in open_trades:
-            trade.close(
+            cash += trade.close(
                 time,
                 open,
                 indicators)
             closed_trades.append(trade)
         # note: we do not set lower_value to None as we want it as our stop loss
         # strategy_state["lower_value"] = None
+        if "cash" in strategy_state:
+            strategy_state["cash"] = cash
     return closed_trades
         
 
@@ -96,6 +102,7 @@ def wf_buy_on_cross_strategy(
     high = candle_stick_indicator.cur_step['high'] 
     low = candle_stick_indicator.cur_step['low']
     time = candle_stick_indicator.cur_step["time"]
+    cash = strategy_state.get("cash", 1)
     # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
     if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
         strategy_state["higher_value"] = candle_stick_indicator.rows['high'][-3]
@@ -103,7 +110,7 @@ def wf_buy_on_cross_strategy(
         strategy_state["lower_value"] = candle_stick_indicator.rows['low'][-3]
     higher_value = strategy_state["higher_value"]
     open_trades: List[Trade] = []    
-    if higher_value and high > higher_value:
+    if higher_value and high > higher_value and cash:
         trade = Trade.open_trade(
             product=product,
             platform=platform,
@@ -111,12 +118,14 @@ def wf_buy_on_cross_strategy(
             open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=higher_value,
-            cash_to_spend=1,
+            cash_to_spend=cash,
             open_indicators=indicators,
         )
         open_trades.append(trade)
         # note: buy signal is removed if we buy
         strategy_state["higher_value"] = None
+        if "cash" in strategy_state:
+            strategy_state["cash"] = 0
     return open_trades
 
 def wf_sell_on_cross_strategy(
@@ -136,14 +145,17 @@ def wf_sell_on_cross_strategy(
     lower_value = strategy_state["lower_value"]
     closed_trades = []
     if (lower_value and low < lower_value) or force_close:
+        cash = strategy_state.get("cash", 1)
         for trade in open_trades:
-            trade.close(
+            cash += trade.close(
                 time,
                 lower_value,
                 indicators)
             closed_trades.append(trade)
         # note: we do not set lower_value to None as we want it as our stop loss
         # strategy_state["lower_value"] = None
+        if "cash" in strategy_state:
+            strategy_state["cash"] = cash
     return closed_trades
 
 def wf_buy_every_open_strategy(
@@ -157,6 +169,7 @@ def wf_buy_every_open_strategy(
     high = candle_stick_indicator.cur_step['high'] 
     low = candle_stick_indicator.cur_step['low']
     time = candle_stick_indicator.cur_step["time"]
+    cash = strategy_state.get("cash", 1)
     # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
     if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
         strategy_state["higher_value"] = candle_stick_indicator.rows['high'][-3]
@@ -164,7 +177,7 @@ def wf_buy_every_open_strategy(
         strategy_state["lower_value"] = candle_stick_indicator.rows['low'][-3]
     higher_value = strategy_state["higher_value"]
     open_trades: List[Trade] = []    
-    if higher_value and open > higher_value:
+    if higher_value and open > higher_value and cash:
         trade = Trade.open_trade(
             product=product,
             platform=platform,
@@ -172,12 +185,14 @@ def wf_buy_every_open_strategy(
             open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=open,
-            cash_to_spend=1,
+            cash_to_spend=cash,
             open_indicators=indicators,
         )
         open_trades.append(trade)
         # note: do not remove the buy signal so we buy many times
         # strategy_state["higher_value"] = None
+        if "cash" in strategy_state:
+            strategy_state["cash"] = 0
     return open_trades
 
 def wf_buy_every_cross_strategy(
@@ -191,6 +206,7 @@ def wf_buy_every_cross_strategy(
     high = candle_stick_indicator.cur_step['high'] 
     low = candle_stick_indicator.cur_step['low']
     time = candle_stick_indicator.cur_step["time"]
+    cash = strategy_state.get("cash", 1)
     # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
     if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
         strategy_state["higher_value"] = candle_stick_indicator.rows['high'][-3]
@@ -198,7 +214,7 @@ def wf_buy_every_cross_strategy(
         strategy_state["lower_value"] = candle_stick_indicator.rows['low'][-3]
     higher_value = strategy_state["higher_value"]
     open_trades: List[Trade] = []    
-    if higher_value and high > higher_value:
+    if higher_value and high > higher_value and cash:
         trade = Trade.open_trade(
             product=product,
             platform=platform,
@@ -206,20 +222,16 @@ def wf_buy_every_cross_strategy(
             open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=higher_value,
-            cash_to_spend=1,
+            cash_to_spend=cash,
             open_indicators=indicators,
         )
         open_trades.append(trade)
         # note: do not remove the buy signal so we buy many times
         # strategy_state["higher_value"] = None
+        if "cash" in strategy_state:
+            strategy_state["cash"] = 0
     return open_trades
 
-# experments = [
-#     (wf_buy_on_open_strategy, wf_sell_on_open_strategy),
-#     (wf_buy_on_open_strategy, wf_sell_on_cross_strategy),
-#     (wf_buy_on_cross_strategy, wf_sell_on_open_strategy),
-#     (wf_buy_on_cross_strategy, wf_sell_on_cross_strategy)
-# ]
 
 buy_strategies = [
     wf_buy_on_open_strategy,
@@ -243,19 +255,35 @@ start_times_to_test = [
     # datetime(2021, 1, 1).replace(tzinfo=timezone.utc),
     # datetime(2022, 1, 1).replace(tzinfo=timezone.utc),
     # datetime(2023, 1, 1).replace(tzinfo=timezone.utc),
-] 
+]
 
-experiments = [(buy, sell, begin) for buy in buy_strategies for sell in sell_strategies for begin in start_times_to_test]
+states = [
+    {"cash": 1},
+    {},
+]
+
+experiments = [
+    (buy, sell, begin, state) 
+        for buy in buy_strategies 
+        for sell in sell_strategies 
+        for begin in start_times_to_test
+        for state in states]
 
 print(f"experiments: {len(experiments)}")
 
 results = []
 
-for buy_strategy, sell_strategie, begin in experiments:
+def should_plot(trade: Trade):
+    return False
+    # x = trade.return_percent > 0.3
+    # return x
+
+for buy_strategy, sell_strategie, begin, additional_state in experiments:
     strategy_state = {
         "higher_value": None,
         "lower_value": None
     }
+    strategy_state.update(additional_state)
     # 8 years
     end_time = begin.replace(year=begin.year+4)
     experment = Experiment(
@@ -276,9 +304,13 @@ for buy_strategy, sell_strategie, begin in experiments:
     result = experment.run()
     # print(experment)
     results.append(result)
+    experment.plot(should_plot)
 
 df = pd.DataFrame(results)
-df = df.sort_values('expected_return', ascending=False)
+if "roi" in df.columns:
+    df = df.sort_values('roi', ascending=False)
+else:
+    df = df.sort_values('expected_return', ascending=False)
 pd.options.display.float_format = '{:,.3f}'.format
 print(df.to_string())
 

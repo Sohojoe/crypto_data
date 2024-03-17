@@ -24,7 +24,7 @@ class Trade:
     actual_exit_price: float = field(default=None)
     close_indicators: List[Indicator] = field(default=None)
 
-    def close(self, close_time, exit_price, close_indicators: List[Indicator]):
+    def close(self, close_time, exit_price, close_indicators: List[Indicator]) -> float:
         actual_exit_price = exit_price - (exit_price * self.slippage)
         self.close_time = close_time
         self.exit_price = exit_price
