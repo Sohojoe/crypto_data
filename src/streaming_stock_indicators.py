@@ -47,7 +47,14 @@ class StreamingStockIndicators:
         if indicators is None:
             indicators = []
 
-        candle_stick_indicator = CandleStickIndicator(window_size=self.window_size)
+        candle_stick_indicator = CandleStickIndicator(
+            window_size=self.window_size,
+            start_time=start_time,
+            product=product,
+            platform=platform,
+            time_period=time_period,
+            end_time=end_time
+            )
         
         for stream_data in self.data_manifest.stream_data(start_time, product, platform, time_period, end_time):
             avaliable_indicators = []
@@ -62,8 +69,20 @@ class StreamingStockIndicators:
             yield avaliable_indicators
 
 class CandleStickIndicator(Indicator):
-    def __init__(self, window_size: int):
+    def __init__(self, 
+                window_size: int,
+                start_time,
+                product, 
+                platform, 
+                time_period, 
+                end_time = None,
+            ):
         self.window_size = window_size
+        self.start_time = start_time
+        self.product = product
+        self.platform = platform
+        self.time_period = time_period
+        self.end_time = end_time
         self._keys = ['low', 'high', 'open', 'close', 'volume', 'time']
         self.window = StreamingWindow(window_size=self.window_size, num_features=len(self.keys))
         row = self.keys.index('time')

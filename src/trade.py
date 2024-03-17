@@ -2,7 +2,7 @@ from dataclasses import dataclass, field, fields
 from typing import List
 import pandas as pd
 import numpy as np
-from streaming_stock_indicators import Indicator
+from streaming_stock_indicators import CandleStickIndicator, Indicator
 import copy
 
 
@@ -18,15 +18,16 @@ class Trade:
     coins: float
     open_indicators: List[Indicator]
     close_time: float = field(default=None)
-    time_open: float = field(default=None)
+    # time_open: float = field(default=None)
     return_percent: float = field(default=None)
     exit_price: float = field(default=None)
     actual_exit_price: float = field(default=None)
     close_indicators: List[Indicator] = field(default=None)
 
-    def close(self, close_time, exit_price, close_indicators: List[Indicator]) -> float:
+    def close(self, exit_price, close_indicators: List[Indicator]) -> float:
+        candle_stick_indicator = next((indicator for indicator in close_indicators if isinstance(indicator, CandleStickIndicator)), None)
         actual_exit_price = exit_price - (exit_price * self.slippage)
-        self.close_time = close_time
+        self.close_time = candle_stick_indicator.cur_step["time"]
         self.exit_price = exit_price
         self.actual_exit_price = actual_exit_price
         self.return_percent = (self.actual_exit_price / self.actual_entry_price) - 1.0
@@ -36,10 +37,6 @@ class Trade:
 
     @staticmethod
     def open_trade(
-        product,
-        platform,
-        time_period,
-        open_time,
         slippage,
         entry_price,
         cash_to_spend,
@@ -47,12 +44,13 @@ class Trade:
     ):
         actual_entry_price = entry_price + (entry_price * slippage)
         coins = cash_to_spend / actual_entry_price
+        candle_stick_indicator = next((indicator for indicator in open_indicators if isinstance(indicator, CandleStickIndicator)), None)
         trade = Trade(
-            product=product,
-            platform=platform,
-            time_period=time_period,
-            open_time=open_time,
-            time_open=open_time,
+            product=candle_stick_indicator.product,
+            platform=candle_stick_indicator.platform,
+            time_period=candle_stick_indicator.time_period,
+            open_time=candle_stick_indicator.cur_step["time"],
+            # time_open=open_time,
             slippage=slippage,
             entry_price=entry_price,
             actual_entry_price=actual_entry_price,

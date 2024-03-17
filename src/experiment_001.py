@@ -11,8 +11,8 @@ window_size = 100
 data_manifest = DataManifest('data')
 product = data_manifest.products[0]
 platform = data_manifest.platforms[0]
-time_period="1D"
-# time_period="6H"
+time_period="3D"
+# time_period="12H"
 begin = data_manifest.start_time
 slippage = 0.005
 # begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
@@ -43,10 +43,6 @@ def wf_buy_on_open_strategy(
     open_trades: List[Trade] = []    
     if higher_value and open > higher_value and cash:
         trade = Trade.open_trade(
-            product=product,
-            platform=platform,
-            time_period=time_period,
-            open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=open,
             cash_to_spend=cash,
@@ -80,7 +76,6 @@ def wf_sell_on_open_strategy(
         cash = strategy_state.get("cash", 0)
         for trade in open_trades:
             cash += trade.close(
-                time,
                 open,
                 indicators)
             closed_trades.append(trade)
@@ -112,10 +107,6 @@ def wf_buy_on_cross_strategy(
     open_trades: List[Trade] = []    
     if higher_value and high > higher_value and cash:
         trade = Trade.open_trade(
-            product=product,
-            platform=platform,
-            time_period=time_period,
-            open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=higher_value,
             cash_to_spend=cash,
@@ -148,7 +139,6 @@ def wf_sell_on_cross_strategy(
         cash = strategy_state.get("cash", 1)
         for trade in open_trades:
             cash += trade.close(
-                time,
                 lower_value,
                 indicators)
             closed_trades.append(trade)
@@ -179,10 +169,6 @@ def wf_buy_every_open_strategy(
     open_trades: List[Trade] = []    
     if higher_value and open > higher_value and cash:
         trade = Trade.open_trade(
-            product=product,
-            platform=platform,
-            time_period=time_period,
-            open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=open,
             cash_to_spend=cash,
@@ -216,10 +202,6 @@ def wf_buy_every_cross_strategy(
     open_trades: List[Trade] = []    
     if higher_value and high > higher_value and cash:
         trade = Trade.open_trade(
-            product=product,
-            platform=platform,
-            time_period=time_period,
-            open_time=candle_stick_indicator.cur_step["time"],
             slippage=slippage,
             entry_price=higher_value,
             cash_to_spend=cash,
