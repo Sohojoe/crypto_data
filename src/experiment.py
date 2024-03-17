@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 import pandas as pd
+from policy import Policy
 from streaming_stock_indicators import CandleStickIndicator, Indicator, StreamingStockIndicators, WilliamsFractalsIndicator
 from trade import Trade
 from visualize_indicators import VisualizeIndicators
@@ -15,25 +16,17 @@ class Experiment():
             begin,
             data_manifest,
             indicators: List[Indicator],
-            buy_strategy,
-            sell_strategy,
-            slippage, 
+            policy: Policy,
             window_size = 100,
-            strategy_state = {},
             end_time=None):
         self.product = product
         self.platform = platform
         self.time_period = time_period
         self.begin = begin
         self.data_manifest = data_manifest
-        self.buy_strategy = buy_strategy
-        self.sell_strategy = sell_strategy
-        self.slippage = slippage
-        self.strategy_state = strategy_state
+        self.policy = policy
         self.end_time = end_time
         self.results = None
-        if "cash" in self.strategy_state:
-            self.start_cash = self.strategy_state["cash"]
 
         streaming_stock_indicators = StreamingStockIndicators(data_manifest, window_size=window_size)
         data_generator = streaming_stock_indicators.stream_data_and_window(
@@ -47,10 +40,9 @@ class Experiment():
 
     def __str__(self):
         if self.results is None:
-            buy_strategy_name = self.buy_strategy.__name__.replace('_strategy', '')
-            sell_strategy_name = self.sell_strategy.__name__.replace('_strategy', '')
+            policy_str = str(self.policy)
             return (
-                f"{buy_strategy_name} - {sell_strategy_name}, "
+                f"{policy_str}, "
                 f"{self.product}, "
                 f"{self.platform}, "
                 f"{self.time_period}, "
@@ -76,17 +68,12 @@ class Experiment():
             except StopIteration:
                 break
         
-            new_open_trades = self.buy_strategy(self.strategy_state, indicators)
-            open_trades.extend(new_open_trades)
-            new_closed_trades = self.sell_strategy(self.strategy_state, indicators, open_trades)
-            closed_trades.extend(new_closed_trades)
-            open_trades = [trade for trade in open_trades if trade not in new_closed_trades]
+            self.policy.step(indicators)
 
         # close any open trades        
-        new_closed_trades = self.sell_strategy(self.strategy_state, indicators, open_trades, force_close=True)
-        closed_trades.extend(new_closed_trades)
-        open_trades = [trade for trade in open_trades if trade not in new_closed_trades]
+        self.policy.end(indicators)
 
+        closed_trades = self.policy.closed_trades
         return_percentages = [x.return_percent for x in closed_trades]
         expected_return = np.mean(return_percentages)
         prob_profit = (len([x for x in return_percentages if x > 0]) / len(return_percentages))
@@ -113,11 +100,12 @@ class Experiment():
         # win_loss_ratio = len(winning_trades) / len(losing_trades)        
 
         self.results = {
+            "roi": ((self.policy.cash / self.policy.start_cash) - 1.0)*100.,
             # "roi": total_return_percent,
             # "hold_roi": buy_and_hold_return_percent,
             # "vs_hodl": total_return_percent/buy_and_hold_return_percent,
-            "buy_strat": self.buy_strategy.__name__.replace('_strategy', ''),
-            "sell_strat": self.sell_strategy.__name__.replace('_strategy', ''),
+            "buy_strat": self.policy.buy_strategy.__name__.replace('_strategy', ''),
+            "sell_strat": self.policy.sell_strategy.__name__.replace('_strategy', ''),
             "expected_ret": expected_return * 100.,
             "std_dev": std_dev_returns * 100.,
             "prob_profit": prob_profit * 100.,
@@ -130,18 +118,14 @@ class Experiment():
             # "avg_win": avg_win * 100.,
             # "avg_loss": avg_loss * 100.,
             "time_period": self.time_period,
-            "slippage": self.slippage,
+            "slippage": self.policy.slippage,
             "product": self.product,
             "platform": self.platform,
             "start_time": self.begin.date(),
+            "end_cash": self.policy.cash,
             }
         if self.end_time is not None:
             self.results['end_time'] = self.end_time.date()
-        if "cash" in self.strategy_state:
-            roi = ((self.strategy_state["cash"] / self.start_cash) - 1.0)*100.
-            self.results = {**{"roi": roi}, **self.results}
-            self.results["start_cash"] = self.start_cash
-            self.results["end_cash"] = self.strategy_state["cash"]
         
         self.closed_trades = closed_trades
         return self.results
