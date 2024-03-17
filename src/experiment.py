@@ -131,7 +131,10 @@ class Experiment():
             "slippage": self.slippage,
             "product": self.product,
             "platform": self.platform,
+            "start_time": self.begin.date(),
             }
+        if self.end_time is not None:
+            self.results['end_time'] = self.end_time.date()
         
         self.closed_trades = closed_trades
         return self.results

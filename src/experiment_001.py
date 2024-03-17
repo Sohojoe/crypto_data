@@ -12,8 +12,9 @@ data_manifest = DataManifest('data')
 product = data_manifest.products[0]
 platform = data_manifest.platforms[0]
 time_period="1D"
+# time_period="6H"
 begin = data_manifest.start_time
-slippage = 0.01
+slippage = 0.005
 # begin = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
 
 indicators=[
@@ -145,21 +146,118 @@ def wf_sell_on_cross_strategy(
         # strategy_state["lower_value"] = None
     return closed_trades
 
+def wf_buy_every_open_strategy(
+        strategy_state: Dict[str, Any], 
+        indicators: List[Indicator]
+        )->List[Trade]:
+    candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
+    williams_fractals_indicator = next((indicator for indicator in indicators if isinstance(indicator, WilliamsFractalsIndicator)), None)
+    open = candle_stick_indicator.cur_step['open']
+    close = candle_stick_indicator.cur_step['close']
+    high = candle_stick_indicator.cur_step['high'] 
+    low = candle_stick_indicator.cur_step['low']
+    time = candle_stick_indicator.cur_step["time"]
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
+    if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
+        strategy_state["higher_value"] = candle_stick_indicator.rows['high'][-3]
+    if (williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
+        strategy_state["lower_value"] = candle_stick_indicator.rows['low'][-3]
+    higher_value = strategy_state["higher_value"]
+    open_trades: List[Trade] = []    
+    if higher_value and open > higher_value:
+        trade = Trade.open_trade(
+            product=product,
+            platform=platform,
+            time_period=time_period,
+            open_time=candle_stick_indicator.cur_step["time"],
+            slippage=slippage,
+            entry_price=open,
+            cash_to_spend=1,
+            open_indicators=indicators,
+        )
+        open_trades.append(trade)
+        # note: do not remove the buy signal so we buy many times
+        # strategy_state["higher_value"] = None
+    return open_trades
 
-experments = [
-    (wf_buy_on_open_strategy, wf_sell_on_open_strategy),
-    (wf_buy_on_open_strategy, wf_sell_on_cross_strategy),
-    (wf_buy_on_cross_strategy, wf_sell_on_open_strategy),
-    (wf_buy_on_cross_strategy, wf_sell_on_cross_strategy)
+def wf_buy_every_cross_strategy(
+        strategy_state: Dict[str, Any], 
+        indicators: List[Indicator]
+        )->List[Trade]:
+    candle_stick_indicator = next((indicator for indicator in indicators if isinstance(indicator, CandleStickIndicator)), None)
+    williams_fractals_indicator = next((indicator for indicator in indicators if isinstance(indicator, WilliamsFractalsIndicator)), None)
+    open = candle_stick_indicator.cur_step['open']
+    close = candle_stick_indicator.cur_step['close']
+    high = candle_stick_indicator.cur_step['high'] 
+    low = candle_stick_indicator.cur_step['low']
+    time = candle_stick_indicator.cur_step["time"]
+    # readbale_time = datetime.fromtimestamp(time, tz=timezone.utc)
+    if (williams_fractals_indicator.rows['higher_fractal'][-3] > 0):
+        strategy_state["higher_value"] = candle_stick_indicator.rows['high'][-3]
+    if (williams_fractals_indicator.rows['lower_fractal'][-3] > 0):
+        strategy_state["lower_value"] = candle_stick_indicator.rows['low'][-3]
+    higher_value = strategy_state["higher_value"]
+    open_trades: List[Trade] = []    
+    if higher_value and high > higher_value:
+        trade = Trade.open_trade(
+            product=product,
+            platform=platform,
+            time_period=time_period,
+            open_time=candle_stick_indicator.cur_step["time"],
+            slippage=slippage,
+            entry_price=higher_value,
+            cash_to_spend=1,
+            open_indicators=indicators,
+        )
+        open_trades.append(trade)
+        # note: do not remove the buy signal so we buy many times
+        # strategy_state["higher_value"] = None
+    return open_trades
+
+# experments = [
+#     (wf_buy_on_open_strategy, wf_sell_on_open_strategy),
+#     (wf_buy_on_open_strategy, wf_sell_on_cross_strategy),
+#     (wf_buy_on_cross_strategy, wf_sell_on_open_strategy),
+#     (wf_buy_on_cross_strategy, wf_sell_on_cross_strategy)
+# ]
+
+buy_strategies = [
+    wf_buy_on_open_strategy,
+    wf_buy_on_cross_strategy,
+    wf_buy_every_open_strategy,
+    wf_buy_every_cross_strategy,
 ]
+
+sell_strategies = [
+    wf_sell_on_open_strategy,
+    wf_sell_on_cross_strategy,
+]
+
+start_times_to_test = [
+    # data_manifest.start_time,
+    # datetime(2016, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2017, 1, 1).replace(tzinfo=timezone.utc),
+    datetime(2018, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2019, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2020, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2021, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2022, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2023, 1, 1).replace(tzinfo=timezone.utc),
+] 
+
+experiments = [(buy, sell, begin) for buy in buy_strategies for sell in sell_strategies for begin in start_times_to_test]
+
+print(f"experiments: {len(experiments)}")
 
 results = []
 
-for ex in experments:
+for buy_strategy, sell_strategie, begin in experiments:
     strategy_state = {
         "higher_value": None,
         "lower_value": None
     }
+    # 8 years
+    end_time = begin.replace(year=begin.year+4)
     experment = Experiment(
         product=product,
         platform=platform,
@@ -167,12 +265,12 @@ for ex in experments:
         begin=begin,
         data_manifest=data_manifest,
         indicators=indicators,
-        buy_strategy=ex[0],
-        sell_strategy=ex[1],
+        buy_strategy=buy_strategy,
+        sell_strategy=sell_strategie,
         slippage=slippage,
         window_size=window_size,
         strategy_state=strategy_state,
-        end_time=None)
+        end_time=end_time)
 
     print(experment)
     result = experment.run()
@@ -180,6 +278,7 @@ for ex in experments:
     results.append(result)
 
 df = pd.DataFrame(results)
+df = df.sort_values('expected_return', ascending=False)
 pd.options.display.float_format = '{:,.3f}'.format
 print(df.to_string())
 
