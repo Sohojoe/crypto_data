@@ -5,6 +5,26 @@ import numpy as np
 from streaming_window import StreamingWindow
 import csv
 
+class DataManifestError(Exception):
+    """Base class for errors related to the data manifest."""
+    pass
+
+class ProductNotFoundError(DataManifestError):
+    def __init__(self, product):
+        super().__init__(f"Product '{product}' not found in manifest.")
+
+class PlatformNotFoundError(DataManifestError):
+    def __init__(self, platform):
+        super().__init__(f"Platform '{platform}' not found in manifest.")
+
+class TimePeriodNotFoundError(DataManifestError):
+    def __init__(self, time_period):
+        super().__init__(f"Time period '{time_period}' not found in manifest.")
+
+class StartTimeNotInWindowError(DataManifestError):
+    def __init__(self, start_time):
+        super().__init__(f"Start time '{start_time}' not in manifest window.")
+
 class DataManifest:
     # Mapping of time periods to folder names
 
@@ -99,20 +119,35 @@ class DataManifest:
                 platform, 
                 time_period,
                 end_time = None):
-        if product in self._data_structure:
-            if platform in self._data_structure[product]:
-                if time_period in self._data_structure[product][platform]:
-                    files = self._data_structure[product][platform][time_period]
-                    for file_name in sorted(files):  # Ensure files are processed in chronological order
-                        file_path = self.root_folder / product / platform / time_period / file_name
-                        file_start_time, file_end_time, _, _, _ = self.from_path(str(file_path))
-                        end_time = end_time or self.end_time
-                        # Only process files that overlap with the query time range
-                        if file_start_time <= end_time and file_end_time >= start_time:
-                            with open(file_path, mode='r', encoding='utf-8') as file:
-                                reader = csv.DictReader(file)
-                                for row in reader:
-                                    row_time = DataManifest.convert_str_to_datetime(row['Time'])
-                                    if start_time <= row_time <= end_time:
-                                        yield row
+        # Validate Inputs
+        if end_time is not None and end_time < start_time:
+            raise ValueError(f"End time '{end_time}' is before start time '{start_time}'.")
+
+        # Validate inputs against manifest and throw exceptions
+        if product not in self._data_structure:
+            raise ProductNotFoundError(product)
+        if platform not in self._data_structure[product]:
+            raise PlatformNotFoundError(platform)
+        if time_period not in self._data_structure[product][platform]:
+            raise TimePeriodNotFoundError(time_period)
+        
+        rows_yielded = 0
+        files = self._data_structure[product][platform][time_period]
+
+        for file_name in sorted(files):  # Ensure files are processed in chronological order
+            file_path = self.root_folder / product / platform / time_period / file_name
+            file_start_time, file_end_time, _, _, _ = self.from_path(str(file_path))
+            end_time = end_time or self.end_time
+            # Only process files that overlap with the query time range
+            if file_start_time <= end_time and file_end_time >= start_time:
+                with open(file_path, mode='r', encoding='utf-8') as file:
+                    reader = csv.DictReader(file)
+                    for row in reader:
+                        row_time = DataManifest.convert_str_to_datetime(row['Time'])
+                        if start_time <= row_time <= end_time:
+                            yield row
+                            rows_yielded += 1
+
+        if rows_yielded == 0:
+            raise StartTimeNotInWindowError(start_time)        
 
