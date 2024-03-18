@@ -4,7 +4,7 @@ from data_manifest import DataManifest
 from experiment import Experiment
 import pandas as pd
 from policy import Policy
-from strategies import wf_buy_every_cross_strategy, wf_buy_every_open_strategy, wf_buy_on_cross_strategy, wf_buy_on_open_strategy, wf_sell_on_cross_strategy, wf_sell_on_open_strategy
+from strategies import buy_hodl_strategy, sell_hodl_strategy, wf_buy_every_cross_strategy, wf_buy_every_open_strategy, wf_buy_on_cross_strategy, wf_buy_on_open_strategy, wf_sell_on_cross_strategy, wf_sell_on_open_strategy
 from streaming_stock_indicators import CandleStickIndicator, Indicator, WilliamsFractalsIndicator
 from trade import Trade
 
@@ -26,14 +26,16 @@ def create_indicators(window_size: int):
     return indicators
 
 buy_strategies = [
-    wf_buy_on_open_strategy,
+    # buy_hodl_strategy,
+    # wf_buy_on_open_strategy,
     wf_buy_on_cross_strategy,
-    wf_buy_every_open_strategy,
-    wf_buy_every_cross_strategy,
+    # wf_buy_every_open_strategy,
+    # wf_buy_every_cross_strategy,
 ]
 
 sell_strategies = [
-    wf_sell_on_open_strategy,
+    # sell_hodl_strategy,
+    # wf_sell_on_open_strategy,
     wf_sell_on_cross_strategy,
 ]
 
@@ -41,7 +43,9 @@ start_times_to_test = [
     # data_manifest.start_time,
     # datetime(2016, 1, 1).replace(tzinfo=timezone.utc),
     # datetime(2017, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2017, 6, 1).replace(tzinfo=timezone.utc),
     datetime(2018, 1, 1).replace(tzinfo=timezone.utc),
+    # datetime(2018, 6, 1).replace(tzinfo=timezone.utc),
     # datetime(2019, 1, 1).replace(tzinfo=timezone.utc),
     # datetime(2020, 1, 1).replace(tzinfo=timezone.utc),
     # datetime(2021, 1, 1).replace(tzinfo=timezone.utc),
@@ -51,17 +55,20 @@ start_times_to_test = [
 
 time_periods=[
     # "6H",
-    # "12H",
+    "4H",
+    "8H",
+    "12H",
     "1D",
-    # "36H",
     "2D",
     "3D",
     "4D",
-    # "5D",
-    # "6D",
-    # "7D",
+    "5D",
+    "6D",
+    "7D",
 ]
 
+# time_periods = [f"{x}H" for x in range(4, (7*24)+4, 4)]
+# print (time_periods)
 
 experiments = [
     (buy, sell, begin, time_period) 
@@ -77,6 +84,7 @@ results = []
 
 def should_plot(trade: Trade):
     return False
+    # return True
     # x = trade.return_percent > 0.3
     # return x
 
@@ -87,7 +95,7 @@ for buy_strategy, sell_strategie, begin, time_period in experiments:
         slippage=slippage,
         start_cash=1
     )
-    # 8 years
+    # end_time = None
     end_time = begin.replace(year=begin.year+4)
     experment = Experiment(
         product=product,
