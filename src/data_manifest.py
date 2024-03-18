@@ -209,7 +209,7 @@ class DataManifest:
         periods = []
         for row in self._stream_data(start_time, product, platform, supported_time_period, end_time):
             periods.append(row)
-            if len(periods) <= num_periods_to_merge:
+            if len(periods) < num_periods_to_merge:
                 continue
             merged_row = {
                 'Time': periods[0]['Time'],
