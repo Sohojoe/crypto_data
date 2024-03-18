@@ -7,6 +7,15 @@ from streaming_stock_indicators import Indicator
 from trade import Trade
 
 
+
+def buy_hodl_strategy(self: Policy):
+    open = self.candle_stick_indicator.cur_step['open']
+    if self.cash:
+        self.open_trade(entry_price=open, cash_to_spend=self.cash)
+
+def sell_hodl_strategy(self: Policy):
+    return
+
 def wf_buy_on_open_strategy(self: Policy):
     open = self.candle_stick_indicator.cur_step['open']
     close = self.candle_stick_indicator.cur_step['close']
