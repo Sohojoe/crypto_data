@@ -4,7 +4,7 @@ from data_manifest import DataManifest
 from experiment import Experiment
 import pandas as pd
 from policy import Policy
-from strategies import buy_hodl_strategy, sell_hodl_strategy, wf_buy_every_cross_strategy, wf_buy_every_open_strategy, wf_buy_on_cross_strategy, wf_buy_on_open_strategy, wf_sell_on_cross_strategy, wf_sell_on_open_strategy
+from strategies import buy_hodl_strategy, sell_hodl_strategy, wf_buy_every_crossed_up_strategy, wf_buy_every_crossed_and_closed_above_strategy, wf_buy_on_crossed_up_strategy, wf_buy_on_crossed_and_closed_above_strategy, wf_sell_on_crossed_down_strategy, wf_sell_on_crossed_and_closed_below_strategy
 from streaming_stock_indicators import CandleStickIndicator, Indicator, WilliamsFractalsIndicator
 from trade import Trade
 
@@ -27,16 +27,16 @@ def create_indicators(window_size: int):
 
 buy_strategies = [
     # buy_hodl_strategy,
-    # wf_buy_on_open_strategy,
-    wf_buy_on_cross_strategy,
-    # wf_buy_every_open_strategy,
-    # wf_buy_every_cross_strategy,
+    wf_buy_on_crossed_and_closed_above_strategy,
+    wf_buy_on_crossed_up_strategy,
+    wf_buy_every_crossed_and_closed_above_strategy,
+    wf_buy_every_crossed_up_strategy
 ]
 
 sell_strategies = [
     # sell_hodl_strategy,
-    # wf_sell_on_open_strategy,
-    wf_sell_on_cross_strategy,
+    wf_sell_on_crossed_and_closed_below_strategy,
+    wf_sell_on_crossed_down_strategy,
 ]
 
 start_times_to_test = [
@@ -83,8 +83,8 @@ print(f"experiments: {len(experiments)}")
 results = []
 
 def should_plot(trade: Trade):
-    return False
     # return True
+    return False
     # x = trade.return_percent > 0.3
     # return x
 
